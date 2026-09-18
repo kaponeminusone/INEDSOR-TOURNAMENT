@@ -7,11 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Trophy, AlertCircle, Award, Medal } from "lucide-react"
 
 export default function ControlCompetencia() {
-  const { categories, matches, robots, institutions, updateMatch, registerPodium } = useData()
+  const { categories, matches, robots, participants, institutions, podiums, updateMatch, registerPodium } = useData()
   const [selectedCat, setSelectedCat] = useState<string>(categories[0]?.id || "")
 
   const activeCategory = categories.find(c => c.id === selectedCat)
   const catMatches = matches.filter(m => m.categoryId === selectedCat)
+  const categoryRobots = robots.filter(robot => robot.categories.includes(selectedCat))
+  const savedPodium = podiums.find(podium => podium.categoryId === selectedCat)
 
   const [podiumOpen, setPodiumOpen] = useState(false)
   const [podiumForm, setPodiumForm] = useState({ gold: '', silver: '', bronze: '' })
@@ -32,8 +34,20 @@ export default function ControlCompetencia() {
   const handlePodiumSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!activeCategory) return
+    if (new Set(Object.values(podiumForm)).size !== 3) return
     registerPodium(activeCategory.id, podiumForm.gold, podiumForm.silver, podiumForm.bronze)
     setPodiumOpen(false)
+  }
+
+  const getRobotInstitution = (robotId: string) => {
+    const owner = participants.find(participant => participant.robots.includes(robotId))
+    return institutions.find(institution => institution.id === owner?.institutionId)
+  }
+
+  const robotOptionLabel = (robotId: string) => {
+    const robot = robots.find(item => item.id === robotId)
+    const institution = getRobotInstitution(robotId)
+    return `${robot?.name ?? "Robot desconocido"} — ${institution?.name ?? "Sin institución"}`
   }
 
   return (
@@ -61,8 +75,15 @@ export default function ControlCompetencia() {
           <Trophy className="h-16 w-16 mx-auto mb-6 text-foreground" />
           <h2 className="text-3xl font-serif font-bold uppercase mb-4">Evaluación Directa</h2>
           <p className="font-mono text-muted-foreground mb-8 max-w-xl mx-auto">
-            Esta categoría no utiliza llaves de eliminación. Asigna los lugares del podio directamente basados en la evaluación del jurado.
+            Esta categoría no utiliza llaves de eliminación. Asigna cada lugar del podio al robot evaluado; su institución recibirá los puntos correspondientes.
           </p>
+          {savedPodium && (
+            <div className="mb-8 border-y-2 border-foreground py-4 text-left font-mono text-sm">
+              <div><strong>1.</strong> {robotOptionLabel(savedPodium.goldRobotId)}</div>
+              <div><strong>2.</strong> {robotOptionLabel(savedPodium.silverRobotId)}</div>
+              <div><strong>3.</strong> {robotOptionLabel(savedPodium.bronzeRobotId)}</div>
+            </div>
+          )}
           
           <Dialog open={podiumOpen} onOpenChange={setPodiumOpen}>
             <DialogTrigger asChild>
@@ -74,27 +95,27 @@ export default function ControlCompetencia() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-500" /> ORO (1er Lugar)</Label>
                   <select required className="flex h-12 w-full border-2 border-foreground bg-amber-500/10 px-4 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={podiumForm.gold} onChange={e=>setPodiumForm({...podiumForm, gold: e.target.value})}>
-                    <option value="" disabled>Seleccionar institución...</option>
-                    {institutions.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    <option value="" disabled>Seleccionar robot...</option>
+                    {categoryRobots.map(robot => <option key={robot.id} value={robot.id}>{robotOptionLabel(robot.id)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2"><Medal className="h-4 w-4 text-slate-400" /> PLATA (2do Lugar)</Label>
                   <select required className="flex h-12 w-full border-2 border-foreground bg-slate-300/10 px-4 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={podiumForm.silver} onChange={e=>setPodiumForm({...podiumForm, silver: e.target.value})}>
-                    <option value="" disabled>Seleccionar institución...</option>
-                    {institutions.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    <option value="" disabled>Seleccionar robot...</option>
+                    {categoryRobots.map(robot => <option key={robot.id} value={robot.id}>{robotOptionLabel(robot.id)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2"><Award className="h-4 w-4 text-orange-500" /> BRONCE (3er Lugar)</Label>
                   <select required className="flex h-12 w-full border-2 border-foreground bg-orange-500/10 px-4 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={podiumForm.bronze} onChange={e=>setPodiumForm({...podiumForm, bronze: e.target.value})}>
-                    <option value="" disabled>Seleccionar institución...</option>
-                    {institutions.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    <option value="" disabled>Seleccionar robot...</option>
+                    {categoryRobots.map(robot => <option key={robot.id} value={robot.id}>{robotOptionLabel(robot.id)}</option>)}
                   </select>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={()=>setPodiumOpen(false)}>CANCELAR</Button>
-                  <Button type="submit">GUARDAR PODIO Y PUNTOS</Button>
+                  <Button type="submit" disabled={new Set(Object.values(podiumForm)).size !== 3}>GUARDAR PODIO Y PUNTOS</Button>
                 </DialogFooter>
               </form>
             </DialogContent>

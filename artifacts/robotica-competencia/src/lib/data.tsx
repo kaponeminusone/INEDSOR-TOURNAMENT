@@ -7,6 +7,7 @@ export type Category = { id: string; name: string; slug: string; format: 'duelo'
 export type MatchStatus = 'pending' | 'active' | 'completed';
 export type Match = { id: string; categoryId: string; round: number; label: string; sideARobots: string[]; sideBRobots: string[]; winner?: 'A' | 'B'; status: MatchStatus; nextMatchId?: string; };
 export type RankingRow = { institutionId: string; gold: number; silver: number; bronze: number; };
+export type PodiumResult = { categoryId: string; goldRobotId: string; silverRobotId: string; bronzeRobotId: string; recordedAt: string; };
 
 type DataState = {
   institutions: Institution[];
@@ -15,6 +16,7 @@ type DataState = {
   categories: Category[];
   matches: Match[];
   rankings: RankingRow[];
+  podiums: PodiumResult[];
 };
 
 const defaultData: DataState = {
@@ -33,9 +35,9 @@ const defaultData: DataState = {
     { id: 'cat_7', name: 'Sumo RC', slug: 'sumo-rc', format: '2v2', rules: 'Duelos en equipo de 2 contra 2. Máximo 3kg combinados. Gana el equipo que deje inoperativos a ambos oponentes o los empuje fuera.', startTime: '04:00 PM', teamSize: 2 },
   ],
   participants: [
-    { id: 'part_1', name: 'Carlos Mendoza', email: 'carlos@test.com', whatsapp: '555-0001', grade: 'Universidad', institutionId: 'inst_1', robots: ['rob_1', 'rob_2', 'rob_5'] },
-    { id: 'part_2', name: 'Ana Silva', email: 'ana@test.com', whatsapp: '555-0002', grade: 'Universidad', institutionId: 'inst_2', robots: ['rob_3', 'rob_6', 'rob_8'] },
-    { id: 'part_3', name: 'Luis Pérez', email: 'luis@test.com', whatsapp: '555-0003', grade: 'Universidad', institutionId: 'inst_3', robots: ['rob_4', 'rob_9'] },
+    { id: 'part_1', name: 'Carlos Mendoza', email: 'carlos@test.com', whatsapp: '555-0001', grade: 'Universidad', institutionId: 'inst_1', robots: ['rob_1', 'rob_2', 'rob_5', 'rob_12'] },
+    { id: 'part_2', name: 'Ana Silva', email: 'ana@test.com', whatsapp: '555-0002', grade: 'Universidad', institutionId: 'inst_2', robots: ['rob_3', 'rob_6', 'rob_8', 'rob_13'] },
+    { id: 'part_3', name: 'Luis Pérez', email: 'luis@test.com', whatsapp: '555-0003', grade: 'Universidad', institutionId: 'inst_3', robots: ['rob_4', 'rob_9', 'rob_14'] },
     { id: 'part_4', name: 'Maria Gomez', email: 'maria@test.com', whatsapp: '555-0004', grade: 'Universidad', institutionId: 'inst_1', robots: ['rob_7', 'rob_10', 'rob_11'] },
   ],
   robots: [
@@ -50,6 +52,9 @@ const defaultData: DataState = {
     { id: 'rob_9', name: 'Sumo Team B', categories: ['cat_7'] },
     { id: 'rob_10', name: 'Dron Y', categories: ['cat_5'] },
     { id: 'rob_11', name: 'Dron Z', categories: ['cat_5'] },
+    { id: 'rob_12', name: 'Globo Hunter', categories: ['cat_6'] },
+    { id: 'rob_13', name: 'Pinchazo EPN', categories: ['cat_6'] },
+    { id: 'rob_14', name: 'Aguijón RC', categories: ['cat_6'] },
   ],
   matches: [
     { id: 'match_1', categoryId: 'cat_2', round: 1, label: 'Octavos - 1', sideARobots: ['rob_2'], sideBRobots: ['rob_3'], status: 'pending' },
@@ -62,7 +67,8 @@ const defaultData: DataState = {
     { institutionId: 'inst_1', gold: 1, silver: 0, bronze: 1 },
     { institutionId: 'inst_2', gold: 0, silver: 1, bronze: 0 },
     { institutionId: 'inst_3', gold: 0, silver: 0, bronze: 1 },
-  ]
+  ],
+  podiums: []
 };
 
 type DataContextType = DataState & {
@@ -75,7 +81,7 @@ type DataContextType = DataState & {
   addRobot: (robot: Omit<Robot, 'id'>) => string; // returns new ID
   addInstitution: (inst: Omit<Institution, 'id'>) => string;
   addParticipantFull: (p: any) => void; // helper for extraoficial
-  registerPodium: (categoryId: string, goldInstId: string, silverInstId: string, bronzeInstId: string) => void;
+  registerPodium: (categoryId: string, goldRobotId: string, silverRobotId: string, bronzeRobotId: string) => void;
   resetData: () => void;
   importData: (newInstitutions: Institution[], newParticipants: Participant[], newRobots: Robot[]) => void;
 };
@@ -96,6 +102,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
              silver: r.silver,
              bronze: r.bronze
            }));
+        }
+        parsed.podiums ??= [];
+        if (!parsed.robots.some((robot: Robot) => robot.categories.includes('cat_6'))) {
+          const demoRobots = defaultData.robots.filter(robot => robot.categories.includes('cat_6'));
+          parsed.robots.push(...demoRobots);
+          parsed.participants = parsed.participants.map((participant: Participant) => {
+            const demoParticipant = defaultData.participants.find(item => item.id === participant.id);
+            const extraRobotIds = demoParticipant?.robots.filter(id => demoRobots.some(robot => robot.id === id)) ?? [];
+            return { ...participant, robots: [...new Set([...participant.robots, ...extraRobotIds])] };
+          });
         }
         return parsed;
       }
@@ -216,16 +232,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const registerPodium = useCallback((categoryId: string, goldInst: string, silverInst: string, bronzeInst: string) => {
+  const registerPodium = useCallback((categoryId: string, goldRobotId: string, silverRobotId: string, bronzeRobotId: string) => {
     setData(prev => {
       const newRankings = [...prev.rankings];
+      const institutionForRobot = (robotId: string) =>
+        prev.participants.find(participant => participant.robots.includes(robotId))?.institutionId;
+      const previousPodium = prev.podiums.find(podium => podium.categoryId === categoryId);
       
-      const updateScore = (instId: string, medalType: 'gold' | 'silver' | 'bronze') => {
+      const updateScore = (instId: string | undefined, medalType: 'gold' | 'silver' | 'bronze', delta: 1 | -1) => {
         if (!instId) return;
         const idx = newRankings.findIndex(r => r.institutionId === instId);
         if (idx >= 0) {
-          newRankings[idx] = { ...newRankings[idx], [medalType]: newRankings[idx][medalType] + 1 };
-        } else {
+          newRankings[idx] = { ...newRankings[idx], [medalType]: Math.max(0, newRankings[idx][medalType] + delta) };
+        } else if (delta > 0) {
           newRankings.push({
             institutionId: instId,
             gold: medalType === 'gold' ? 1 : 0,
@@ -235,11 +254,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      updateScore(goldInst, 'gold');
-      updateScore(silverInst, 'silver');
-      updateScore(bronzeInst, 'bronze');
+      if (previousPodium) {
+        updateScore(institutionForRobot(previousPodium.goldRobotId), 'gold', -1);
+        updateScore(institutionForRobot(previousPodium.silverRobotId), 'silver', -1);
+        updateScore(institutionForRobot(previousPodium.bronzeRobotId), 'bronze', -1);
+      }
 
-      return { ...prev, rankings: newRankings };
+      updateScore(institutionForRobot(goldRobotId), 'gold', 1);
+      updateScore(institutionForRobot(silverRobotId), 'silver', 1);
+      updateScore(institutionForRobot(bronzeRobotId), 'bronze', 1);
+
+      const podium: PodiumResult = {
+        categoryId,
+        goldRobotId,
+        silverRobotId,
+        bronzeRobotId,
+        recordedAt: new Date().toISOString()
+      };
+
+      return {
+        ...prev,
+        rankings: newRankings,
+        podiums: [...prev.podiums.filter(item => item.categoryId !== categoryId), podium]
+      };
     });
   }, []);
 
