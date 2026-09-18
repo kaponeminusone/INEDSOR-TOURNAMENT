@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 
-export type Institution = { id: string; name: string; coach: string; initials: string; };
+export type Institution = { id: string; name: string; coach: string; initials: string; logo?: string; };
 export type Robot = { id: string; name: string; categories: string[]; };
 export type Participant = { id: string; name: string; email: string; whatsapp: string; grade: string; institutionId: string; attendedAt?: string; robots: string[]; };
 export type Category = { id: string; name: string; slug: string; format: 'duelo' | '2v2' | 'grupo' | 'podio'; rules: string; startTime: string; teamSize: number; groupSize?: number; };
@@ -78,9 +78,10 @@ type DataContextType = DataState & {
   markAttendance: (participantId: string) => void;
   updateMatch: (matchId: string, updates: Partial<Match>) => void;
   addParticipant: (participant: Omit<Participant, 'id'>) => void;
-  addRobot: (robot: Omit<Robot, 'id'>) => string; // returns new ID
+  addRobot: (robot: Omit<Robot, 'id'>) => string; 
   addInstitution: (inst: Omit<Institution, 'id'>) => string;
-  addParticipantFull: (p: any) => void; // helper for extraoficial
+  updateInstitution: (id: string, updates: Partial<Institution>) => void;
+  addParticipantFull: (p: any) => void; 
   registerPodium: (categoryId: string, goldRobotId: string, silverRobotId: string, bronzeRobotId: string) => void;
   resetData: () => void;
   importData: (newInstitutions: Institution[], newParticipants: Participant[], newRobots: Robot[]) => void;
@@ -94,7 +95,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem('robotica_data');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Migrar ranking para no tener "points" hardcodeado
         if (parsed.rankings && parsed.rankings.length > 0 && 'points' in parsed.rankings[0]) {
            parsed.rankings = parsed.rankings.map((r: any) => ({
              institutionId: r.institutionId,
@@ -185,6 +185,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return newId;
   }, []);
 
+  const updateInstitution = useCallback((id: string, updates: Partial<Institution>) => {
+    setData(prev => ({
+      ...prev,
+      institutions: prev.institutions.map(inst => inst.id === id ? { ...inst, ...updates } : inst)
+    }));
+  }, []);
+
   const addParticipantFull = useCallback((payload: {
     participantName: string, email: string, whatsapp: string, grade: string,
     institutionId: string, newInstitutionName?: string,
@@ -219,7 +226,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         whatsapp: payload.whatsapp,
         grade: payload.grade,
         institutionId: instId,
-        attendedAt: new Date().toISOString(), // auto-presente
+        attendedAt: new Date().toISOString(),
         robots: [robotId]
       }];
 
@@ -282,8 +289,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const importData = useCallback((newInstitutions: Institution[], newParticipants: Participant[], newRobots: Robot[]) => {
     setData(prev => {
-      // Simple merge without duplicate checks for demo purposes since
-      // deduplication is handled in the component
       return {
         ...prev,
         institutions: [...prev.institutions, ...newInstitutions],
@@ -301,7 +306,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider value={{ 
       ...data, 
       isLoggedIn, login, logout,
-      markAttendance, updateMatch, addParticipant, addRobot, addInstitution, addParticipantFull, registerPodium, importData, resetData 
+      markAttendance, updateMatch, addParticipant, addRobot, addInstitution, updateInstitution, addParticipantFull, registerPodium, importData, resetData 
     }}>
       {children}
     </DataContext.Provider>

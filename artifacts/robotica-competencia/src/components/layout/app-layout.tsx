@@ -55,6 +55,7 @@ function LoginScreen({ onLogin }: { onLogin: (code: string) => boolean }) {
           <div>
             <Input 
               type="password"
+              autoComplete="current-password"
               placeholder="Código de acceso"
               className="text-center text-xl h-14 uppercase"
               value={code}

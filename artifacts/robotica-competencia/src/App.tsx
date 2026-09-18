@@ -13,6 +13,7 @@ import ControlAttendance from '@/pages/control/attendance';
 import ControlCompetencia from '@/pages/control/competencia';
 import ControlImportar from '@/pages/control/import';
 import ControlParticipantes from '@/pages/control/participants';
+import ControlInstituciones from '@/pages/control/institutions';
 
 function NotFound() {
   return (
@@ -38,6 +39,7 @@ function Router() {
         
         {/* Control Routes */}
         <Route path="/control" component={ControlDashboard} />
+        <Route path="/control/instituciones" component={ControlInstituciones} />
         <Route path="/control/asistencia" component={ControlAttendance} />
         <Route path="/control/participantes" component={ControlParticipantes} />
         <Route path="/control/competencia" component={ControlCompetencia} />
