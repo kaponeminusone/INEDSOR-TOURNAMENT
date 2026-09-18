@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Competencia de Robótica"
+description = "Plataforma web responsive para gestionar asistencia, participantes, categorías, enfrentamientos, brackets y clasificación institucional de una competencia académica de robótica."
+version = "1.0.0"
+id = "artifacts/robotica-competencia"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19244
+
+[services.development]
+run = "pnpm --filter @workspace/robotica-competencia run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/robotica-competencia", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/robotica-competencia/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19244"
+BASE_PATH = "/"

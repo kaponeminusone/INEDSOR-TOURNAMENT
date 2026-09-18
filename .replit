@@ -1,0 +1,11 @@
+modules = ["nodejs-20"]
+
+[workflows]
+runButton = "Project"
+
+[nix]
+channel = "stable-25_05"
+
+[[ports]]
+localPort = 19244
+externalPort = 80
