@@ -1,11 +1,13 @@
 import { Link, useLocation } from "wouter"
 import { cn } from "@/components/ui/button"
-import { Users, CheckSquare, Swords, Upload, LayoutDashboard, LogOut, Building2 } from "lucide-react"
+import { Users, CheckSquare, Swords, Upload, LayoutDashboard, LogOut, Building2, ChevronLeft, ChevronRight } from "lucide-react"
 import { useData } from "@/lib/data"
+import { useState } from "react"
 
 export function ControlSidebar() {
   const [location] = useLocation()
   const { logout } = useData()
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const navItems = [
     { href: "/control", label: "RESUMEN", icon: LayoutDashboard },
@@ -17,12 +19,29 @@ export function ControlSidebar() {
   ]
 
   return (
-    <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border bg-muted/20 flex flex-col md:min-h-[calc(100vh-4rem)]">
-      <div className="p-4 md:p-6 border-b border-border hidden md:block">
-        <h2 className="font-serif font-bold text-xl uppercase">Panel de Control</h2>
-        <p className="font-mono text-sm text-muted-foreground mt-1 text-tab-control font-bold">ORGANIZADOR</p>
+    <aside className={cn(
+      "border-b md:border-b-0 md:border-r border-border bg-muted/10 flex flex-col md:min-h-[calc(100vh-4rem)] transition-all duration-300",
+      isCollapsed ? "w-full md:w-20" : "w-full md:w-64"
+    )}>
+      <div className={cn(
+        "p-4 border-b border-border hidden md:flex items-center",
+        isCollapsed ? "justify-center" : "justify-between"
+      )}>
+        {!isCollapsed && (
+          <div>
+            <h2 className="font-serif font-black text-xl uppercase tracking-tight text-tab-control">Panel</h2>
+            <p className="font-mono text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">Organizador</p>
+          </div>
+        )}
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1.5 hover:bg-tab-control/10 hover:text-tab-control rounded transition-colors text-foreground/70"
+          title={isCollapsed ? "Expandir panel" : "Colapsar panel"}
+        >
+          {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </button>
       </div>
-      <nav className="flex flex-row md:flex-col p-2 md:p-4 gap-2 overflow-x-auto flex-1">
+      <nav className="flex flex-row md:flex-col p-2 md:p-3 gap-1 overflow-x-auto flex-1">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = location === item.href || (item.href !== "/control" && location.startsWith(item.href))
@@ -31,25 +50,31 @@ export function ControlSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 font-mono font-bold text-xs md:text-sm uppercase transition-colors whitespace-nowrap",
+                "flex items-center px-3 py-2.5 md:py-3 font-mono font-bold text-xs md:text-sm uppercase transition-colors whitespace-nowrap rounded-none",
+                isCollapsed ? "justify-center" : "gap-3",
                 isActive 
-                  ? "bg-foreground text-background" 
-                  : "bg-transparent text-foreground/70 hover:bg-muted hover:text-foreground"
+                  ? "bg-tab-control text-white" 
+                  : "bg-transparent text-foreground/70 hover:bg-tab-control/10 hover:text-tab-control"
               )}
+              title={isCollapsed ? item.label : undefined}
             >
-              <Icon className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
-              <span className="hidden sm:inline-block">{item.label}</span>
+              <Icon className="h-5 w-5 shrink-0" />
+              {!isCollapsed && <span className="hidden sm:inline-block tracking-wide">{item.label}</span>}
             </Link>
           )
         })}
       </nav>
-      <div className="p-2 md:p-4 mt-auto border-t border-border hidden md:block">
+      <div className="p-2 md:p-3 mt-auto border-t border-border hidden md:block">
         <button 
           onClick={logout}
-          className="flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 font-mono font-bold text-xs md:text-sm uppercase transition-colors bg-transparent hover:bg-muted text-foreground/70 hover:text-foreground w-full text-left"
+          className={cn(
+            "flex items-center px-3 py-3 font-mono font-bold text-sm uppercase transition-colors bg-transparent hover:bg-destructive/10 text-foreground/70 hover:text-destructive w-full rounded-none",
+            isCollapsed ? "justify-center" : "gap-3 text-left"
+          )}
+          title={isCollapsed ? "SALIR" : undefined}
         >
-          <LogOut className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
-          <span>SALIR</span>
+          <LogOut className="h-5 w-5 shrink-0" />
+          {!isCollapsed && <span className="tracking-wide">SALIR</span>}
         </button>
       </div>
     </aside>
