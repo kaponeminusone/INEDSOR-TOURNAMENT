@@ -192,7 +192,7 @@ export default function Home() {
           </div>
 
           <div className="bg-card border border-border shadow-sm overflow-x-auto">
-            <table className="table-layout w-full min-w-[600px]">
+            <table className="table-layout w-full min-w-[920px]">
               <thead>
                 <tr>
                   <th className="w-16 text-center">POS</th>
@@ -254,10 +254,10 @@ export default function Home() {
             <table className="table-layout w-full min-w-[600px]">
               <thead>
                 <tr>
-                  <th>CATEGORÍA</th>
-                  <th>MODALIDAD</th>
-                  <th>REGLAS BÁSICAS</th>
-                  <th className="text-right">HORA INICIO</th>
+                  <th className="w-[22%]">CATEGORÍA</th>
+                  <th className="w-[14%]">MODALIDAD</th>
+                  <th className="w-[49%]">REGLAS BÁSICAS</th>
+                  <th className="w-[15%] text-right">HORA INICIO</th>
                 </tr>
               </thead>
               <tbody>
@@ -271,7 +271,7 @@ export default function Home() {
                     <td className="font-mono uppercase text-xs">
                       <span className="px-2 py-1 bg-muted rounded-none">{cat.format}</span>
                     </td>
-                    <td className="text-muted-foreground text-sm max-w-md truncate">
+                    <td className="text-muted-foreground text-sm whitespace-normal break-words leading-relaxed py-5 pr-8">
                       {cat.rules}
                     </td>
                     <td className="text-right font-mono font-bold text-lg">{cat.startTime}</td>
