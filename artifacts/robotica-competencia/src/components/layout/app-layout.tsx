@@ -25,27 +25,37 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const currentIndex = getRouteIndex(location)
   const prevIndexRef = useRef(currentIndex)
+  const prevLocationRef = useRef(location)
   
-  const direction = currentIndex > prevIndexRef.current ? 1 : currentIndex < prevIndexRef.current ? -1 : 0
+  const involvesControl =
+    location.startsWith("/control") || prevLocationRef.current.startsWith("/control")
+  const direction = involvesControl
+    ? 0
+    : currentIndex > prevIndexRef.current
+      ? 1
+      : currentIndex < prevIndexRef.current
+        ? -1
+        : 0
   
   useEffect(() => {
     prevIndexRef.current = currentIndex
-  }, [currentIndex])
+    prevLocationRef.current = location
+  }, [currentIndex, location])
 
   const variants: Variants = {
     initial: (dir: number) => ({
       x: shouldReduceMotion ? 0 : (dir > 0 ? "100%" : dir < 0 ? "-100%" : 0),
     }),
-    animate: {
+    animate: (dir: number) => ({
       x: 0,
       transition: {
-        x: { type: "tween", duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+        x: { type: "tween", duration: dir === 0 ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }
       }
-    },
+    }),
     exit: (dir: number) => ({
       x: shouldReduceMotion ? 0 : (dir > 0 ? "-100%" : dir < 0 ? "100%" : 0),
       transition: {
-        x: { type: "tween", duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+        x: { type: "tween", duration: dir === 0 ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }
       }
     })
   }
