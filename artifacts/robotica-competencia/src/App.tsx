@@ -1,5 +1,4 @@
-import { type ReactNode } from 'react';
-import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { AppLayout } from '@/components/layout/app-layout';
 import { DataProvider } from '@/lib/data';
 
@@ -8,6 +7,7 @@ import Categories from '@/pages/categories';
 import CategoryDetail from '@/pages/category-detail';
 import Ranking from '@/pages/ranking';
 import Bracket from '@/pages/bracket';
+import Gallery from '@/pages/gallery';
 import ControlDashboard from '@/pages/control/dashboard';
 import ControlAttendance from '@/pages/control/attendance';
 import ControlCompetencia from '@/pages/control/competencia';
@@ -36,6 +36,7 @@ function Router() {
         <Route path="/categorias/:slug" component={CategoryDetail} />
         <Route path="/ranking" component={Ranking} />
         <Route path="/bracket" component={Bracket} />
+        <Route path="/galeria" component={Gallery} />
         
         {/* Control Routes */}
         <Route path="/control" component={ControlDashboard} />

@@ -33,7 +33,7 @@ function RollingNumber({ value, pad = 2 }: { value: number, pad?: number }) {
 }
 
 export default function Home() {
-  const { categories, participants, institutions, rankings } = useData()
+  const { categories, institutions, rankings } = useData()
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   const topInstitutions = rankings
@@ -69,32 +69,28 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-full bg-background">
-      <section className="relative w-full overflow-hidden bg-foreground text-background min-h-[50vh] flex flex-col items-center justify-center px-4">
-        <div className="absolute inset-0 opacity-90 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-inedsor-blue)] via-foreground to-[var(--color-inedsor-red)] mix-blend-multiply"></div>
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[150%] bg-[var(--color-inedsor-blue)] rotate-12 opacity-20 blur-3xl"></div>
-          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[120%] bg-[var(--color-inedsor-red)] -rotate-12 opacity-20 blur-3xl"></div>
-          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-        </div>
+      <section className="relative w-full overflow-hidden bg-[#243f68] text-white min-h-[330px] flex flex-col items-center justify-center px-4">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#243f68] via-[#243f68] to-[#7d3540] opacity-80" />
+        <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.18) 50%, transparent 50.1%)', backgroundSize: '80px 80px' }} />
 
-        <div className="relative z-10 text-center max-w-4xl mx-auto w-full py-20 flex flex-col items-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-none border border-white/20 bg-white/10 backdrop-blur-sm font-mono text-sm uppercase tracking-widest text-white mb-8 shadow-sm">
+        <div className="relative z-10 text-center max-w-4xl mx-auto w-full py-12 flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 bg-white/10 font-mono text-xs uppercase tracking-wider text-white mb-5">
             <Building2 className="h-4 w-4" />
             <span>Institución Educativa Soledad Román de Núñez</span>
           </div>
           
-          <h1 className="text-5xl md:text-8xl lg:text-9xl font-serif font-black uppercase leading-[0.9] tracking-tight mb-8 text-white drop-shadow-2xl">
-            TORNEO<br />INEDSOR
+          <h1 className="font-serif font-extrabold uppercase leading-tight tracking-tight mb-4 text-white text-[clamp(2rem,4vw,3rem)]">
+            TORNEO INEDSOR
           </h1>
 
           <div className="flex flex-wrap justify-center gap-4 mt-4 w-full px-4 sm:px-0">
             <Link href="/categorias" className="block w-full sm:w-auto">
-              <Button size="lg" className="bg-white text-foreground hover:bg-white/90 rounded-none font-bold text-base px-8 h-14 w-full sm:w-auto">
+              <Button size="lg" className="bg-background text-primary hover:bg-background/90 rounded font-bold text-sm px-6 h-10 w-full sm:w-auto">
                 VER CATEGORÍAS <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="/ranking" className="block w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 rounded-none font-bold text-base px-8 h-14 bg-transparent backdrop-blur-sm w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 rounded font-bold text-sm px-6 h-10 bg-transparent w-full sm:w-auto">
                 RANKING ACTUAL
               </Button>
             </Link>
@@ -107,7 +103,7 @@ export default function Home() {
           <div className="font-mono text-sm uppercase tracking-widest opacity-80 whitespace-nowrap font-bold">
             La competencia inicia en:
           </div>
-          <div className="flex gap-4 md:gap-8 items-center font-mono font-bold text-3xl md:text-5xl md:pl-12 lg:pl-20">
+          <div className="flex gap-4 md:gap-8 items-center font-mono font-bold text-xl md:text-2xl md:pl-12 lg:pl-20">
             <div className="flex flex-col items-center">
               <RollingNumber value={timeLeft.days} pad={3} />
               <span className="text-[10px] md:text-xs opacity-50 mt-1 tracking-widest">DÍAS</span>
@@ -138,7 +134,7 @@ export default function Home() {
               <Layers className="h-8 w-8" />
             </div>
             <div>
-              <div className="text-4xl font-serif font-black text-tab-cat">6</div>
+              <div className="text-2xl font-serif font-black text-tab-cat">6</div>
               <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Categorías</div>
             </div>
           </div>
@@ -147,7 +143,7 @@ export default function Home() {
               <Users className="h-8 w-8" />
             </div>
             <div>
-              <div className="text-4xl font-serif font-black text-inedsor-blue">3</div>
+              <div className="text-2xl font-serif font-black text-inedsor-blue">3</div>
               <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Participantes</div>
             </div>
           </div>
@@ -156,7 +152,7 @@ export default function Home() {
               <Building2 className="h-8 w-8" />
             </div>
             <div>
-              <div className="text-4xl font-serif font-black text-tab-rank">3</div>
+              <div className="text-2xl font-serif font-black text-tab-rank">3</div>
               <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Instituciones</div>
             </div>
           </div>

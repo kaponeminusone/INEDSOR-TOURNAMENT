@@ -2,6 +2,7 @@ import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { galleryApi } from './gallery-api.ts';
 
 const rawPort = process.env.PORT;
 
@@ -28,6 +29,7 @@ if (!basePath) {
 export default defineConfig({
   base: basePath,
   plugins: [
+    galleryApi(),
     react(),
     tailwindcss(),
   ],

@@ -13,7 +13,8 @@ function getRouteIndex(path: string) {
   if (path.startsWith("/categorias")) return 1
   if (path.startsWith("/ranking")) return 2
   if (path.startsWith("/bracket")) return 3
-  if (path.startsWith("/control")) return 4
+  if (path.startsWith("/galeria")) return 4
+  if (path.startsWith("/control")) return 5
   return 0
 }
 

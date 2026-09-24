@@ -1,83 +1,28 @@
-import * as React from "react"
-import { Link, useLocation } from "wouter"
-import { cn } from "@/components/ui/button"
-import { Menu, X, Home, Layers, Trophy, LayoutTemplate, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { Menu, X, Home, Layers, Trophy, LayoutTemplate, Images, Settings } from "lucide-react";
+
+const links = [
+  { href: "/", label: "Inicio", icon: Home, accent: "var(--color-tab-home)" },
+  { href: "/categorias", label: "Categorías", icon: Layers, accent: "var(--color-tab-cat)" },
+  { href: "/ranking", label: "Ranking", icon: Trophy, accent: "var(--color-tab-rank)" },
+  { href: "/bracket", label: "Brackets", icon: LayoutTemplate, accent: "var(--color-tab-bracket)" },
+  { href: "/galeria", label: "Galería", icon: Images, accent: "var(--color-tab-home)" },
+  { href: "/control", label: "Control", icon: Settings, accent: "var(--color-tab-control)" },
+];
 
 export function Navbar() {
-  const [location] = useLocation()
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [location] = useLocation();
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [location]);
+  const isActive = (href: string) => location === href || (href !== "/" && location.startsWith(`${href}/`));
 
-  React.useEffect(() => {
-    setIsOpen(false)
-  }, [location])
-
-  const links = [
-    { href: "/", label: "INICIO", icon: Home, colorClass: "text-tab-home", activeClass: "text-tab-home border-tab-home" },
-    { href: "/categorias", label: "CATEGORÍAS", icon: Layers, colorClass: "text-tab-cat", activeClass: "text-tab-cat border-tab-cat" },
-    { href: "/ranking", label: "RANKING", icon: Trophy, colorClass: "text-tab-rank", activeClass: "text-tab-rank border-tab-rank" },
-    { href: "/bracket", label: "BRACKETS", icon: LayoutTemplate, colorClass: "text-tab-bracket", activeClass: "text-tab-bracket border-tab-bracket" },
-    { href: "/control", label: "CONTROL", icon: Settings, colorClass: "text-tab-control", activeClass: "text-tab-control border-tab-control" },
-  ]
-
-  return (
-    <nav className="sticky top-0 z-50 w-full border-b-2 border-border bg-background shadow-sm">
-      <div className="flex h-16 items-center px-4 md:px-8 max-w-7xl mx-auto w-full">
-        <div className="hidden md:flex flex-1 items-center justify-center space-x-2 text-sm font-mono">
-          <div className="flex items-center space-x-8 h-full">
-            {links.map((link) => {
-              const Icon = link.icon;
-              const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
-              const colorBase = link.colorClass.split("-")[2];
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "flex items-center gap-2 transition-all font-bold border-b-4 py-5",
-                    isActive ? link.activeClass : `border-transparent text-muted-foreground hover:text-tab-${colorBase}`
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="tracking-widest">{link.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="flex flex-1 items-center justify-between md:hidden">
-          <div className="font-serif font-black uppercase tracking-tight text-xl">TORNEO INEDSOR</div>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="hover:bg-muted">
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </Button>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="md:hidden border-t-2 border-border">
-          <div className="flex flex-col px-2 py-4 bg-muted/10 space-y-1">
-            {links.map((link) => {
-              const Icon = link.icon;
-              const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
-              const colorBase = link.colorClass.split("-")[2];
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "flex items-center gap-3 text-sm font-mono font-bold uppercase p-4 transition-colors border-l-4",
-                    isActive ? `text-tab-${colorBase} bg-tab-${colorBase}/10 border-tab-${colorBase}` : `text-muted-foreground border-transparent hover:bg-muted/50 hover:text-tab-${colorBase}`
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="tracking-widest">{link.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </nav>
-  )
+  return <nav className="inedsor-nav" aria-label="Navegación principal">
+    <div className="inedsor-nav-inner">
+      <Link href="/" className="inedsor-brand" aria-label="Torneo INEDSOR, inicio"><span className="inedsor-brand-symbol">I<span>.</span></span><span className="inedsor-brand-name">TORNEO <strong>INEDSOR</strong><small>ROBÓTICA ESCOLAR</small></span></Link>
+      <div className="inedsor-nav-links">{links.map(link => <Link key={link.href} href={link.href} style={{ "--nav-accent": link.accent } as React.CSSProperties} className={`inedsor-nav-link${isActive(link.href) ? " active" : ""}`} aria-current={isActive(link.href) ? "page" : undefined}><link.icon size={15} />{link.label}</Link>)}</div>
+      <button className="inedsor-nav-toggle" type="button" aria-expanded={open} aria-label={open ? "Cerrar menú" : "Abrir menú"} onClick={() => setOpen(value => !value)}>{open ? <X size={21} /> : <Menu size={21} />}</button>
+    </div>
+    {open && <div className="inedsor-nav-mobile">{links.map(link => <Link key={link.href} href={link.href} style={{ "--nav-accent": link.accent } as React.CSSProperties} className={`inedsor-nav-mobile-link${isActive(link.href) ? " active" : ""}`} aria-current={isActive(link.href) ? "page" : undefined}><link.icon size={16} />{link.label}</Link>)}</div>}
+  </nav>;
 }
