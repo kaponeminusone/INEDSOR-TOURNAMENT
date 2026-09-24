@@ -15,7 +15,7 @@ export default function Ranking() {
     .sort((a, b) => b.points - a.points || b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze)
 
   return (
-    <div className="py-12 px-4 md:px-8 max-w-7xl mx-auto w-full">
+    <div className="ranking-page page-shell">
       <div className="mb-10 border-b-2 border-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-4 mb-3">

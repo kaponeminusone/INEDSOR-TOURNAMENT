@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useData } from "@/lib/data"
 import { Button } from "@/components/ui/button"
-import { ZoomIn, ZoomOut, Maximize, MousePointer2 } from "lucide-react"
+import { ZoomIn, ZoomOut, Maximize, MousePointer2, Check } from "lucide-react"
 
 export default function Bracket() {
   const { categories, matches, robots } = useData()
@@ -61,7 +61,7 @@ export default function Bracket() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-muted/10 overflow-hidden">
+    <div className="bracket-page flex flex-col min-h-[calc(100dvh-64px)] h-[calc(100dvh-64px)] bg-muted/10 overflow-hidden">
       {/* Toolbar */}
       <div className="border-b-4 border-foreground bg-background p-4 flex flex-col sm:flex-row gap-4 justify-between items-center z-10 shrink-0">
         <div className="flex items-center gap-4 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
@@ -136,13 +136,13 @@ export default function Bracket() {
                         <span className={`font-bold truncate max-w-[150px] ${match.winner === 'A' ? '' : 'text-muted-foreground'}`}>
                            {getTeamName(match.sideARobots)}
                         </span>
-                        {match.winner === 'A' && <span className="font-black">★</span>}
+                        {match.winner === 'A' && <Check size={16} aria-label="Ganador" />}
                       </div>
                       <div className={`p-3 flex justify-between items-center ${match.winner === 'B' ? 'bg-primary/10' : ''}`}>
                         <span className={`font-bold truncate max-w-[150px] ${match.winner === 'B' ? '' : 'text-muted-foreground'}`}>
                            {getTeamName(match.sideBRobots)}
                         </span>
-                        {match.winner === 'B' && <span className="font-black">★</span>}
+                        {match.winner === 'B' && <Check size={16} aria-label="Ganador" />}
                       </div>
                       
                       {/* Diagram connection lines - Simplified for visual effect */}

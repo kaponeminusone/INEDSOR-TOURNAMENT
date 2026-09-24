@@ -1,5 +1,6 @@
 import { useData } from "@/lib/data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Link } from "wouter"
 import { Activity, Users, CheckCircle2, ShieldAlert } from "lucide-react"
 
 export default function ControlDashboard() {
@@ -90,7 +91,7 @@ export default function ControlDashboard() {
         <div>
           <h2 className="text-2xl font-serif font-bold uppercase mb-6 border-b-2 border-foreground pb-2">Acciones Rápidas</h2>
           <div className="grid grid-cols-2 gap-4">
-            <a href="/control/asistencia" className="group">
+            <Link href="/control/asistencia" className="group">
               <Card className="h-full group-hover:bg-foreground group-hover:text-background transition-colors cursor-pointer">
                 <CardHeader>
                   <CardTitle className="text-lg">Registro de Asistencia</CardTitle>
@@ -99,8 +100,8 @@ export default function ControlDashboard() {
                   Marcar llegada de delegaciones y validar inscripción.
                 </CardContent>
               </Card>
-            </a>
-            <a href="/control/competencia" className="group">
+            </Link>
+            <Link href="/control/competencia" className="group">
               <Card className="h-full group-hover:bg-foreground group-hover:text-background transition-colors cursor-pointer">
                 <CardHeader>
                   <CardTitle className="text-lg">Llamado a Pista</CardTitle>
@@ -109,7 +110,7 @@ export default function ControlDashboard() {
                   Iniciar encuentros y registrar resultados.
                 </CardContent>
               </Card>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

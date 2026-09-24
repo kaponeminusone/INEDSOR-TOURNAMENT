@@ -1,7 +1,7 @@
 import { useRoute, Link } from "wouter"
 import { useData } from "@/lib/data"
-import { Button } from "@/components/ui/button"
 import { ArrowLeft, User, ShieldAlert } from "lucide-react"
+import { categoryImages } from "@/lib/category-images"
 
 export default function CategoryDetail() {
   const [, params] = useRoute("/categorias/:slug")
@@ -14,9 +14,7 @@ export default function CategoryDetail() {
       <div className="py-20 text-center flex flex-col items-center">
         <ShieldAlert className="h-16 w-16 mb-4 text-muted-foreground" />
         <h1 className="text-3xl font-serif uppercase font-bold mb-4">Categoría no encontrada</h1>
-        <Link href="/categorias">
-          <Button>VOLVER A CATEGORÍAS</Button>
-        </Link>
+        <Link href="/categorias" className="soft-button primary">Volver a categorías</Link>
       </div>
     )
   }
@@ -25,7 +23,7 @@ export default function CategoryDetail() {
   const registeredRobots = robots.filter(r => r.categories.includes(category.id))
 
   return (
-    <div className="py-12 px-4 md:px-8 max-w-7xl mx-auto w-full">
+    <div className="category-detail-page page-shell">
       <Link href="/categorias" className="inline-flex items-center font-mono text-sm font-bold uppercase hover:underline mb-8">
         <ArrowLeft className="mr-2 h-4 w-4" /> VOLVER
       </Link>
@@ -35,6 +33,12 @@ export default function CategoryDetail() {
           <h1 className="text-5xl md:text-7xl font-serif font-black uppercase mb-6 leading-none">
             {category.name}
           </h1>
+          {categoryImages[category.slug] && (
+            <figure className="category-detail-photo">
+              <img src={categoryImages[category.slug]} alt={`Imagen ilustrativa de ${category.name}`} decoding="async" />
+              <figcaption>Imagen ilustrativa de la categoría</figcaption>
+            </figure>
+          )}
           
           <div className="flex flex-wrap gap-4 mb-8 font-mono text-sm">
             <div className="border-2 border-foreground px-4 py-2 bg-muted">
@@ -95,12 +99,8 @@ export default function CategoryDetail() {
               Acciones
             </h3>
             <div className="flex flex-col gap-4">
-              <Link href={`/bracket?category=${category.id}`}>
-                <Button className="w-full text-lg h-16">VER LLAVES</Button>
-              </Link>
-              <Link href={`/control/competencia?category=${category.id}`}>
-                <Button variant="outline" className="w-full">GESTIONAR ENCUENTROS</Button>
-              </Link>
+              <Link href={`/bracket?category=${category.id}`} className="soft-button primary w-full">Ver llaves</Link>
+              <Link href={`/control/competencia?category=${category.id}`} className="soft-button w-full">Gestionar encuentros</Link>
             </div>
           </div>
         </div>

@@ -2,8 +2,8 @@ import { Link } from "wouter"
 import { useData } from "@/lib/data"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { ArrowRight, Users, Clock, Sword, Layers } from "lucide-react"
+import { categoryImages } from "@/lib/category-images"
 
 export default function Categories() {
   const { categories, robots } = useData()
@@ -23,7 +23,7 @@ export default function Categories() {
   }
 
   return (
-    <div className="py-12 px-4 md:px-8 max-w-7xl mx-auto w-full">
+    <div className="categories-page page-shell">
       <div className="mb-10 border-b-2 border-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-4 mb-3">
@@ -38,9 +38,15 @@ export default function Categories() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categories.map((category) => (
-          <Card key={category.id} className="flex flex-col rounded-none border-2 border-border hover:border-tab-cat/50 group hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-border)] transition-all duration-300 bg-card">
+          <Card key={category.id} className="flex flex-col rounded-none border-2 border-border hover:border-tab-cat/50 group transition-colors duration-200 bg-card">
+            {categoryImages[category.slug] && (
+              <figure className="category-card-photo">
+                <img src={categoryImages[category.slug]} alt={`Imagen ilustrativa de ${category.name}`} loading="lazy" decoding="async" />
+                <figcaption>Imagen ilustrativa</figcaption>
+              </figure>
+            )}
             <CardHeader className="border-b-2 border-border pb-4 transition-colors">
               <div className="flex justify-between items-start mb-4">
                 <Badge variant="outline" className="bg-muted text-foreground border-border rounded-none uppercase font-mono font-bold tracking-wider">{getFormatLabel(category.format)}</Badge>
@@ -51,7 +57,7 @@ export default function Categories() {
               <CardTitle className="text-2xl uppercase font-serif tracking-tight leading-tight group-hover:text-tab-cat transition-colors">{category.name}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 mt-4">
-              <p className="font-mono text-sm mb-6 line-clamp-3 text-muted-foreground">
+              <p className="font-mono text-sm mb-6 text-muted-foreground">
                 {category.rules}
               </p>
               
@@ -71,11 +77,7 @@ export default function Categories() {
               </div>
             </CardContent>
             <CardFooter className="mt-auto pt-0 pb-6 px-6">
-              <Link href={`/categorias/${category.slug}`} className="w-full block">
-                <Button variant="outline" className="w-full rounded-none border-2 border-foreground hover:bg-foreground hover:text-background transition-colors font-bold uppercase text-sm h-12 tracking-widest group-hover:border-tab-cat group-hover:bg-tab-cat group-hover:text-white">
-                  VER DETALLES <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <Link href={`/categorias/${category.slug}`} className="inline-link">Explorar categoría <ArrowRight size={15} /></Link>
             </CardFooter>
           </Card>
         ))}

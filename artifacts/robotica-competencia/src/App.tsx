@@ -1,4 +1,6 @@
 import { Route, Switch, Router as WouterRouter } from 'wouter';
+import { Link } from 'wouter';
+import { ArrowLeft, Compass } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { DataProvider } from '@/lib/data';
 
@@ -17,12 +19,14 @@ import ControlInstituciones from '@/pages/control/institutions';
 
 function NotFound() {
   return (
-    <div className="py-20 text-center flex flex-col items-center">
-      <h1 className="text-6xl font-serif uppercase font-bold mb-4">404</h1>
-      <p className="font-mono text-xl mb-8">Página no encontrada.</p>
-      <a href="/" className="px-6 py-3 border-2 border-foreground bg-foreground text-background font-bold uppercase font-mono hover:bg-transparent hover:text-foreground transition-colors">
-        Volver al Inicio
-      </a>
+    <div className="page-shell min-h-[70dvh] flex items-center justify-center">
+      <div className="surface-panel max-w-[530px] w-full p-8 sm:p-12">
+        <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary grid place-items-center mb-7"><Compass size={22} /></div>
+        <span className="eyebrow">ERROR 404 · RUTA NO DISPONIBLE</span>
+        <h1 className="text-[28px] font-bold mt-2 mb-3">Esta página no está en el mapa.</h1>
+        <p className="text-muted-foreground text-[13px] leading-relaxed mb-7">El enlace puede haber cambiado o la dirección no existe. Vuelve al inicio para continuar explorando el torneo.</p>
+        <Link href="/" className="soft-button primary"><ArrowLeft size={15} /> Volver al inicio</Link>
+      </div>
     </div>
   );
 }

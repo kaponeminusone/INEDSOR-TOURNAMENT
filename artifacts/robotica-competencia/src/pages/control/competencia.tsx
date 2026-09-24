@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useData } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +9,10 @@ import { Trophy, AlertCircle, Award, Medal } from "lucide-react"
 export default function ControlCompetencia() {
   const { categories, matches, robots, participants, institutions, podiums, updateMatch, registerPodium } = useData()
   const [selectedCat, setSelectedCat] = useState<string>(categories[0]?.id || "")
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("category")
+    if (id && categories.some(category => category.id === id)) setSelectedCat(id)
+  }, [categories])
 
   const activeCategory = categories.find(c => c.id === selectedCat)
   const catMatches = matches.filter(m => m.categoryId === selectedCat)
@@ -85,7 +89,7 @@ export default function ControlCompetencia() {
             </div>
           )}
           
-          <Dialog open={podiumOpen} onOpenChange={setPodiumOpen}>
+          <Dialog open={podiumOpen} onOpenChange={open => { setPodiumOpen(open); if (open && savedPodium) setPodiumForm({ gold: savedPodium.goldRobotId, silver: savedPodium.silverRobotId, bronze: savedPodium.bronzeRobotId }); }}>
             <DialogTrigger asChild>
               <Button size="lg" className="text-lg px-12">REGISTRAR PODIO</Button>
             </DialogTrigger>
@@ -183,9 +187,10 @@ export default function ControlCompetencia() {
                     </Button>
                   )}
                   {match.status === 'active' && (
-                    <Button size="sm" variant="outline" onClick={() => handleStatusChange(match.id, 'pending')}>
-                      PAUSAR / CANCELAR
-                    </Button>
+                    <>
+                      {activeCategory?.format === 'grupo' && <Button size="sm" onClick={() => handleStatusChange(match.id, 'completed')}>FINALIZAR CARRERA</Button>}
+                      <Button size="sm" variant="outline" onClick={() => handleStatusChange(match.id, 'pending')}>PAUSAR / CANCELAR</Button>
+                    </>
                   )}
                   {match.status === 'completed' && (
                     <Button size="sm" variant="outline" onClick={() => updateMatch(match.id, { winner: undefined, status: 'active' })}>

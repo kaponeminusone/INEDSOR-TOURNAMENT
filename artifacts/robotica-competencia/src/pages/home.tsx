@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import { Link } from "wouter"
-import { Button } from "@/components/ui/button"
 import { useData } from "@/lib/data"
 import { ArrowRight, Trophy, Users, Activity, Building2, Layers } from "lucide-react"
 import { InstitutionLogo } from "@/components/institution-logo"
@@ -68,7 +67,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="flex flex-col w-full bg-background">
+    <div className="home-page flex flex-col w-full bg-background">
       <section className="relative w-full overflow-hidden bg-[#243f68] text-white min-h-[330px] flex flex-col items-center justify-center px-4">
         <div className="absolute inset-0 bg-gradient-to-r from-[#243f68] via-[#243f68] to-[#7d3540] opacity-80" />
         <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.18) 50%, transparent 50.1%)', backgroundSize: '80px 80px' }} />
@@ -79,26 +78,19 @@ export default function Home() {
             <span>Institución Educativa Soledad Román de Núñez</span>
           </div>
           
-          <h1 className="font-serif font-extrabold uppercase leading-tight tracking-tight mb-4 text-white text-[clamp(2rem,4vw,3rem)]">
+          <h1 className="font-serif font-extrabold uppercase leading-tight tracking-tight mb-2 text-white text-[clamp(2rem,4vw,3rem)]">
             TORNEO INEDSOR
           </h1>
+          <p className="text-[13px] text-white/75 max-w-xl">Ingenio, estrategia y robótica en una jornada de competencia escolar.</p>
 
-          <div className="flex flex-wrap justify-center gap-4 mt-4 w-full px-4 sm:px-0">
-            <Link href="/categorias" className="block w-full sm:w-auto">
-              <Button size="lg" className="bg-background text-primary hover:bg-background/90 rounded font-bold text-sm px-6 h-10 w-full sm:w-auto">
-                VER CATEGORÍAS <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/ranking" className="block w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 rounded font-bold text-sm px-6 h-10 bg-transparent w-full sm:w-auto">
-                RANKING ACTUAL
-              </Button>
-            </Link>
+          <div className="flex flex-wrap justify-center gap-3 mt-6 w-full px-4 sm:px-0">
+            <Link href="/categorias" className="soft-button bg-background text-primary hover:bg-background/90 border-transparent w-full sm:w-auto">Explorar categorías <ArrowRight size={15} /></Link>
+            <Link href="/ranking" className="soft-button bg-white/10 border-white/25 text-white hover:bg-white/20 w-full sm:w-auto">Ver clasificación</Link>
           </div>
         </div>
       </section>
 
-      <section className="bg-foreground text-background border-b border-border shadow-md relative z-20">
+      <section className="bg-[#192d48] text-[#eef4f8] border-b border-border relative z-20">
         <div className="max-w-5xl mx-auto py-6 px-4 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="font-mono text-sm uppercase tracking-widest opacity-80 whitespace-nowrap font-bold">
             La competencia inicia en:
@@ -127,7 +119,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-b border-border bg-muted/10">
+      <section className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
           <div className="p-8 flex items-center justify-center gap-6 group hover:bg-tab-cat/5 transition-colors">
             <div className="bg-tab-cat/10 p-4 rounded-none text-tab-cat transition-transform group-hover:scale-110">
@@ -169,9 +161,7 @@ export default function Home() {
               </h2>
               <p className="font-mono text-muted-foreground mt-2 text-lg">Líderes de la competencia actual</p>
             </div>
-            <Link href="/ranking" className="hidden sm:block">
-              <Button variant="outline" className="rounded-none border-2 border-tab-rank text-tab-rank hover:bg-tab-rank hover:text-white font-bold uppercase transition-colors tracking-widest">VER RANKING COMPLETO</Button>
-            </Link>
+            <Link href="/ranking" className="soft-button hidden sm:inline-flex">Ver ranking completo <ArrowRight size={14} /></Link>
           </div>
 
           <div className="bg-card border-2 border-border shadow-[8px_8px_0px_0px_var(--color-tab-rank)] overflow-x-auto transition-shadow">
@@ -213,9 +203,7 @@ export default function Home() {
             </table>
           </div>
           <div className="sm:hidden mt-4">
-             <Link href="/ranking" className="block">
-              <Button variant="outline" className="w-full rounded-none border-2 border-tab-rank text-tab-rank font-bold tracking-widest">VER RANKING COMPLETO</Button>
-            </Link>
+             <Link href="/ranking" className="soft-button w-full">Ver ranking completo <ArrowRight size={14} /></Link>
           </div>
         </div>
 
@@ -227,9 +215,7 @@ export default function Home() {
               </h2>
               <p className="font-mono text-muted-foreground mt-2 text-lg">Programación oficial</p>
             </div>
-            <Link href="/categorias" className="hidden sm:block">
-              <Button variant="outline" className="rounded-none border-2 border-tab-cat text-tab-cat hover:bg-tab-cat hover:text-white font-bold uppercase transition-colors tracking-widest">VER TODAS LAS CATEGORÍAS</Button>
-            </Link>
+            <Link href="/categorias" className="soft-button hidden sm:inline-flex">Ver todas las categorías <ArrowRight size={14} /></Link>
           </div>
 
           <div className="bg-card border-2 border-border shadow-[8px_8px_0px_0px_var(--color-tab-cat)] overflow-x-auto transition-shadow">
@@ -263,9 +249,7 @@ export default function Home() {
             </table>
           </div>
           <div className="sm:hidden mt-4">
-             <Link href="/categorias" className="block">
-              <Button variant="outline" className="w-full rounded-none border-2 border-tab-cat text-tab-cat font-bold tracking-widest">VER TODAS LAS CATEGORÍAS</Button>
-            </Link>
+             <Link href="/categorias" className="soft-button w-full">Ver todas las categorías <ArrowRight size={14} /></Link>
           </div>
         </div>
 

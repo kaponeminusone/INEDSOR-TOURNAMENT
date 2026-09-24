@@ -141,12 +141,12 @@ export default function ControlAttendance() {
 
       <div className="border-2 border-foreground bg-card overflow-hidden">
         <table className="table-layout">
-          <thead className="bg-foreground text-background">
+          <thead className="bg-muted">
             <tr>
-              <th className="!bg-transparent text-background">Participante / Institución</th>
-              <th className="!bg-transparent text-background hidden md:table-cell">Contacto</th>
-              <th className="!bg-transparent text-background">Robots</th>
-              <th className="!bg-transparent text-background text-right">Estado</th>
+              <th>Participante / Institución</th>
+              <th className="hidden md:table-cell">Contacto</th>
+              <th>Robots</th>
+              <th className="text-right">Estado</th>
             </tr>
           </thead>
           <tbody>
