@@ -40,7 +40,7 @@ export default function Categories() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categories.map((category) => (
-          <Card key={category.id} className="flex flex-col rounded-none border-2 border-border hover:border-tab-cat/50 group transition-colors duration-200 bg-card">
+          <Card key={category.id} className="category-card flex flex-col rounded-none border-2 border-border group bg-card">
             {categoryImages[category.slug] && (
               <figure className="category-card-photo">
                 <img src={categoryImages[category.slug]} alt={`Imagen ilustrativa de ${category.name}`} loading="lazy" decoding="async" />
@@ -77,7 +77,7 @@ export default function Categories() {
               </div>
             </CardContent>
             <CardFooter className="mt-auto pt-0 pb-6 px-6">
-              <Link href={`/categorias/${category.slug}`} className="inline-link">Explorar categoría <ArrowRight size={15} /></Link>
+              <Link href={`/categorias/${category.slug}`} className="inline-link category-card-link">Explorar categoría <ArrowRight size={15} /></Link>
             </CardFooter>
           </Card>
         ))}

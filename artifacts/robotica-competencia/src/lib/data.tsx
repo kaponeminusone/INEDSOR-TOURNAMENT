@@ -30,9 +30,11 @@ const defaultData: DataState = {
     { id: 'cat_2', name: 'Minisumo', slug: 'minisumo', format: 'duelo', rules: 'Empujar al oponente fuera del dohyo. Max 500g, 10x10cm.', startTime: '10:00 AM', teamSize: 1 },
     { id: 'cat_3', name: 'Sumo', slug: 'sumo', format: 'duelo', rules: 'Empujar al oponente fuera del dohyo. Max 3kg, 20x20cm.', startTime: '11:00 AM', teamSize: 1 },
     { id: 'cat_4', name: 'Soccer RC', slug: 'soccer-rc', format: '2v2', rules: 'Equipos de 2 robots. 2 tiempos de 3 minutos. Gana quien anota más goles.', startTime: '12:00 PM', teamSize: 2 },
-    { id: 'cat_5', name: 'Pista con Dron', slug: 'pista-dron', format: 'grupo', rules: 'Carrera de 5 drones. El primero en cruzar avanza.', startTime: '02:00 PM', teamSize: 1, groupSize: 5 },
+    { id: 'cat_5', name: 'Circuito Dron', slug: 'pista-dron', format: 'grupo', rules: 'Carrera de 5 drones. El primero en cruzar avanza.', startTime: '02:00 PM', teamSize: 1, groupSize: 5 },
     { id: 'cat_6', name: 'Explotaglobos RC', slug: 'explotaglobos', format: 'podio', rules: 'Evaluación directa por jurado de tiempo y globos explotados.', startTime: '03:00 PM', teamSize: 1 },
     { id: 'cat_7', name: 'Sumo RC', slug: 'sumo-rc', format: '2v2', rules: 'Duelos en equipo de 2 contra 2. Máximo 3kg combinados. Gana el equipo que deje inoperativos a ambos oponentes o los empuje fuera.', startTime: '04:00 PM', teamSize: 2 },
+    { id: 'cat_8', name: 'Circuito RC', slug: 'circuito-rc', format: 'grupo', rules: 'Reglas y recorrido por confirmar con la organización.', startTime: 'Por definir', teamSize: 1 },
+    { id: 'cat_9', name: 'Laberinto', slug: 'laberinto', format: 'podio', rules: 'Reglas del laberinto por confirmar con la organización.', startTime: 'Por definir', teamSize: 1 },
   ],
   participants: [
     { id: 'part_1', name: 'Carlos Mendoza', email: 'carlos@test.com', whatsapp: '555-0001', grade: 'Universidad', institutionId: 'inst_1', robots: ['rob_1', 'rob_2', 'rob_5', 'rob_12'] },
@@ -104,6 +106,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
            }));
         }
         parsed.podiums ??= [];
+        parsed.categories = parsed.categories.map((category: Category) =>
+          category.id === 'cat_5' ? { ...category, name: 'Circuito Dron' } : category
+        );
+        for (const category of defaultData.categories.filter(item => item.id === 'cat_8' || item.id === 'cat_9')) {
+          if (!parsed.categories.some((item: Category) => item.id === category.id || item.slug === category.slug)) {
+            parsed.categories.push(category);
+          }
+        }
         if (!parsed.robots.some((robot: Robot) => robot.categories.includes('cat_6'))) {
           const demoRobots = defaultData.robots.filter(robot => robot.categories.includes('cat_6'));
           parsed.robots.push(...demoRobots);

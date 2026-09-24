@@ -126,7 +126,7 @@ export default function Home() {
               <Layers className="h-8 w-8" />
             </div>
             <div>
-              <div className="text-2xl font-serif font-black text-tab-cat">6</div>
+              <div className="text-2xl font-serif font-black text-tab-cat">{categories.length}</div>
               <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Categorías</div>
             </div>
           </div>
