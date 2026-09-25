@@ -1,0 +1,1 @@
+- [Horarios y reglamentos del torneo](torneo-datos-pendientes.md) — no publicar horarios ni reglas de categorías nuevas como oficiales sin confirmación.

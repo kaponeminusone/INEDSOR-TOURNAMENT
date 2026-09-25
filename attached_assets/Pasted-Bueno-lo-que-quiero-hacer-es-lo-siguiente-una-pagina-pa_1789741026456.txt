@@ -1,0 +1,34 @@
+Bueno, lo que quiero hacer es lo siguiente:
+una pagina para mostrar el ranking actual de la competencia tipo laderboards, las distintas categorias y la general, asi como para cada uno de estos un bracket de enfrentamientos dependiendo del tipo, donde este permita REGISTRAR el resultado de un enfrentamiento/competencia, como te digo dependiendo del tipo, para saber quien pasa a la siguiente ronda.
+Deberian haber igualmente automaticamente diferente tipo de clasificaciones dependiendo de las necesidades y disponibilidad el bracket de arme correctamente y se realicen el numero de enfrentamientos, entonces para eso quiero que intentes pensarlo modularmente, por ejemplo si se da la ocasion entonce me tocaria crear el sistema de clasiicacion osea como funciona el bracket, 8 jugadores y pasan 3, y hay bracket de losers etc, todo esto se debe poder VER VISUALMENTE para saber correctamente como estará representado.
+
+La informacion debe estar arraigada a una web, para que los datos se puedan ver en tiempo real.
+
+Tambien para mayor facilidad, se habilitará una opcion para REGISTRO de los robot participantes, este deberia estar organizado Por la CATEGORIA, luego la INSTITUCION.
+
+Entonce apra que tengas en cuenta quiero que este robot sea simplement un nombre que se le asigna, pero me gustaria que para mayor facilidad se pueda trackear correctamente si el DIA DEL evento, ASISTIÓ a la competencia, osea por ejemplo, si se inscribio en SUMO, CARRERA, etc.
+Entonces deberia automaticamente añadirse a la lista en espera de geenracion del bracket para esa categoria si me entiendes?
+Entonces debe ser algo facil de entender, ya que la idea es la siguiente:
+Si estamos en la etapa de SUMO, hay que ir llamando los enfrentamientos (a los robots) y registrando el resultado facilmente.
+Pero como te digo la idea es que, 1 esta informacion se peuda obtener de un excel, consumiendo un google sheet por ejemplo, o de forma manual, registrando los datos de la persona, luego te diria cuales son (pero son irrelevantes realmente), a mi lo que me importa es la facilidad de transicion entre categorias, lectura de datos, registro etc.
+
+Tambien necesito que la pagina principal se vea profesional, me refiero a que contenga un HEADER que probablemente contendrá un banner a modo casi de publicidad de Amazon por ejemplo, donde aqui se muestren las diferentes categorias y sus reglas, hora de inicio, # de robots inscritos hasta el momento por ejemplo, etc este seria la pagina que se muestra a las personas o publico en general.
+
+pero debe ser la misma para todo lo demas que te mencione, asi que necesitamos diferntes rutas para manejar correctamente todo.
+para el registro de clasificacion lo que te pediré unicamentte es un codigo secreto que la idea es que se quede registrado en la cookie o algo asi para que no haya necesidad de pedirlo más nunca si lo conoces, caso contrario debe registrarlo, asi no cualquiera puede ingresar un resultado, pero puede visualizar la tabla etc, la  persona que tenga el codigo puede ver por ejemplo, las opciones que te mencioné de conffiguracion y generacion de los bracket etc.]
+
+
+Tambien a modo de validación el dia del evento como temenciono se necesita saber si el robot llegó, entonces se necesita un registro GENERAL para filtrar por nombre y marcar si asistió el estudiante y por ende su y/o sus robots, caso contrariode que no se encuentre en el registro principal se pueda regisrar extraoficialmente.
+
+Entonces genera el plan de acción para ver que tal todo esto.
+
+Quiero que porfavor los menus cuadros etc, funcionen bien cuando se le de a devolver en telefono o cosas asi (normalmente en paginas mal hechas devolver se sale de la URL por ejemplo, en vez de regresar donde estaba antes).
+
+Si necesitas ejemplos, te diria que Battlefy.
+Sobre todo el ranking o laderboard tienes que tener en cuenta que va por institución, osea por ejemplos cuantos primer puestos tiene, segundo puesto, etc.
+el sistema de puntuacion no sé cual decirte, pero si ideas uno me dices.
+
+Para mayor facilidadd tambien de reconocimiento, los colegios se les deberia poder poner su /logo etc, osea debe haber tambien un registro/identificacion de institucion (previo, o se obtuvo del excel) y si algun participante pertenece a esa, entonces se deberia poder añadir al laderboard de lo contrario simplemente no asistió, nadie de esa y no se deberia presentar ningun problema si entiendes?
+
+
+Desglosa la idea, dime las tecnologias y veremos que hacer.
