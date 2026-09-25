@@ -1,2 +1,4 @@
 - [Horarios y reglamentos del torneo](torneo-datos-pendientes.md) — no publicar horarios ni reglas de categorías nuevas como oficiales sin confirmación.
 - [GitHub y Git en terminal](github-git-auth.md) — la conexión OAuth de GitHub autoriza la API, pero no necesariamente autentica `git push` por HTTPS.
+- [Supabase compartido](supabase-compartido.md) — revisar permisos de tablas ajenas al torneo antes de considerar segura la publicación.
+- [Build estático y Secrets](build-estatico-secrets.md) — al añadir variables VITE_ después de publicar, reconstruir y republicar el sitio estático.
