@@ -1,158 +1,107 @@
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { useData, Institution } from "@/lib/data"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Building2, Pencil, Trash2, Image as ImageIcon, Upload, X } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { ControlHeader } from "@/components/page-header"
+import { InstitutionLogo } from "@/components/institution-logo"
+import { Building2, Pencil, Trash2, Upload } from "lucide-react"
 
 export default function ControlInstituciones() {
-  const { institutions, updateInstitution } = useData()
+  const { institutions, updateInstitution, setInstitutionLogo } = useData()
   const [editingId, setEditingId] = useState<string | null>(null)
-  
-  const [editData, setEditData] = useState<{name: string, coach: string, initials: string}>({ name: '', coach: '', initials: '' })
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [editData, setEditData] = useState({ name: "", coach: "", initials: "" })
 
   const startEdit = (inst: Institution) => {
     setEditingId(inst.id)
     setEditData({ name: inst.name, coach: inst.coach, initials: inst.initials })
   }
 
-  const saveEdit = (id: string) => {
-    updateInstitution(id, editData)
-    setEditingId(null)
+  const saveEdit = async (id: string) => {
+    if (await updateInstitution(id, editData)) setEditingId(null)
   }
 
-  const handleLogoUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    e.target.value = ""
     if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona una imagen.')
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor selecciona una imagen.")
       return
     }
-
-    // Convert to Base64
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      if (base64.length > 500 * 1024) { // ~500kb approx
-         alert('La imagen es muy grande. Usa una imagen menor de 500 KB.')
-         e.target.value = ''
-         return
-      }
-      updateInstitution(id, { logo: base64 })
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const removeLogo = (id: string) => {
-    updateInstitution(id, { logo: undefined })
+    await setInstitutionLogo(id, file)
   }
 
   return (
-    <div className="p-6 md:p-10 w-full max-w-5xl">
-      <div className="mb-10 flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-serif font-black uppercase mb-2">Instituciones</h1>
-          <p className="font-mono text-muted-foreground">Gestiona los logos y detalles de los colegios participantes.</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-5xl px-5 py-8 md:px-10 md:py-12">
+      <ControlHeader title="Instituciones" description="Logos y datos de los colegios participantes." />
 
       <div className="space-y-4">
         {institutions.map(inst => (
-          <Card key={inst.id} className="overflow-hidden border-border rounded-none">
-            <CardContent className="p-0 flex flex-col md:flex-row">
-              {/* Logo Column */}
-              <div className="w-full md:w-48 bg-muted/50 border-b md:border-b-0 md:border-r border-border p-6 flex flex-col items-center justify-center gap-4 shrink-0 relative group">
-                <div className="w-24 h-24 bg-background border border-border flex items-center justify-center overflow-hidden">
-                  {inst.logo ? (
-                    <img src={inst.logo} alt={inst.name} className="w-full h-full object-contain p-2" />
-                  ) : (
-                    <div className="text-4xl font-serif font-bold text-muted-foreground opacity-50">{inst.initials}</div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  <label className="cursor-pointer bg-foreground text-background px-3 py-1.5 text-xs font-mono font-bold hover:bg-foreground/80 transition-colors inline-flex items-center gap-2">
-                    <Upload className="h-3 w-3" />
-                    SUBIR
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={(e) => handleLogoUpload(inst.id, e)} 
-                    />
-                  </label>
-                  {inst.logo && (
-                    <button 
-                      onClick={() => removeLogo(inst.id)}
-                      className="bg-destructive text-destructive-foreground px-2 py-1.5 text-xs hover:bg-destructive/80 transition-colors"
-                      title="Eliminar logo"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Data Column */}
-              <div className="p-6 flex-1 flex flex-col justify-center">
-                {editingId === inst.id ? (
-                  <div className="space-y-4 max-w-md">
-                    <div>
-                      <label className="font-mono text-xs uppercase text-muted-foreground mb-1 block">Nombre Institución</label>
-                      <Input 
-                        value={editData.name} 
-                        onChange={(e) => setEditData({...editData, name: e.target.value})} 
-                        className="rounded-none border-border"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-mono text-xs uppercase text-muted-foreground mb-1 block">Siglas</label>
-                        <Input 
-                          value={editData.initials} 
-                          onChange={(e) => setEditData({...editData, initials: e.target.value})} 
-                          className="rounded-none border-border uppercase font-mono"
-                          maxLength={5}
-                        />
-                      </div>
-                      <div>
-                        <label className="font-mono text-xs uppercase text-muted-foreground mb-1 block">Coach</label>
-                        <Input 
-                          value={editData.coach} 
-                          onChange={(e) => setEditData({...editData, coach: e.target.value})} 
-                          className="rounded-none border-border"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button onClick={() => saveEdit(inst.id)} className="rounded-none">GUARDAR</Button>
-                      <Button onClick={() => setEditingId(null)} variant="outline" className="rounded-none">CANCELAR</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-serif text-2xl font-bold uppercase mb-1">{inst.name}</div>
-                      <div className="font-mono text-sm text-muted-foreground flex gap-4">
-                        <span><strong className="text-foreground">SIGLA:</strong> {inst.initials}</span>
-                        <span><strong className="text-foreground">COACH:</strong> {inst.coach || 'Sin asignar'}</span>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => startEdit(inst)} className="rounded-none hover:bg-muted">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </div>
+          <div key={inst.id} className="panel flex flex-col gap-5 p-5 sm:flex-row sm:items-center">
+            <div className="flex shrink-0 items-center gap-4 sm:flex-col sm:gap-3">
+              <InstitutionLogo institution={inst} className="h-20 w-20 rounded-2xl text-[22px]" />
+              <div className="flex gap-1.5">
+                <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-muted px-3 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-[hsl(240_6%_90%)]">
+                  <Upload size={13} /> Logo
+                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => void handleLogoUpload(inst.id, e)} />
+                </label>
+                {inst.logo && (
+                  <button
+                    onClick={() => void setInstitutionLogo(inst.id, null)}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-muted text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    title="Eliminar logo"
+                    aria-label="Eliminar logo"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {editingId === inst.id ? (
+                <div className="max-w-lg space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`inst-name-${inst.id}`}>Nombre</Label>
+                    <Input id={`inst-name-${inst.id}`} value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`inst-ini-${inst.id}`}>Siglas</Label>
+                      <Input id={`inst-ini-${inst.id}`} value={editData.initials} onChange={(e) => setEditData({ ...editData, initials: e.target.value })} className="uppercase" maxLength={5} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`inst-coach-${inst.id}`}>Coach</Label>
+                      <Input id={`inst-coach-${inst.id}`} value={editData.coach} onChange={(e) => setEditData({ ...editData, coach: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => void saveEdit(inst.id)}>Guardar</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setEditingId(null)}>Cancelar</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[21px] font-semibold leading-tight tracking-[-0.025em]">{inst.name}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[14px] text-muted-foreground">
+                      <span>Siglas: <span className="text-foreground">{inst.initials}</span></span>
+                      <span>Coach: <span className="text-foreground">{inst.coach || "Sin asignar"}</span></span>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => startEdit(inst)} aria-label={`Editar ${inst.name}`}>
+                    <Pencil size={16} />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
         ))}
         {institutions.length === 0 && (
-          <div className="p-12 text-center border border-border bg-muted/30">
-            <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="font-mono text-muted-foreground">No hay instituciones registradas.</p>
+          <div className="panel flex flex-col items-center p-14 text-center text-muted-foreground">
+            <Building2 size={32} strokeWidth={1.5} />
+            <p className="mt-3">No hay instituciones registradas.</p>
           </div>
         )}
       </div>

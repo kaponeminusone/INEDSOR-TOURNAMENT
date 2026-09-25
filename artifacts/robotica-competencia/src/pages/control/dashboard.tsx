@@ -1,118 +1,96 @@
-import { useData } from "@/lib/data"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "wouter"
-import { Activity, Users, CheckCircle2, ShieldAlert } from "lucide-react"
+import { Activity, CheckCircle2, ChevronRight, Cpu, Swords, UserCheck, Users } from "lucide-react"
+import { useData } from "@/lib/data"
+import { resolveMatches, type Competition } from "@/lib/competition"
+import { ControlHeader } from "@/components/page-header"
 
 export default function ControlDashboard() {
-  const { categories, participants, matches, robots } = useData()
+  const { categories, participants, competitions, competitionMatches, competitionRuns, robots } = useData()
 
-  const pendingMatches = matches.filter(m => m.status === 'pending').length
-  const activeMatches = matches.filter(m => m.status === 'active').length
-  const completedMatches = matches.filter(m => m.status === 'completed').length
-  
+  // Encuentros jugables (sin byes ni finales extra no necesarias) y su avance por competencia.
+  const progressOf = (competition: Competition | undefined) => {
+    if (!competition) return { done: 0, total: 0 }
+    if (competition.kind === "timed") {
+      const runs = competitionRuns.filter(r => r.competitionId === competition.id)
+      return { done: runs.length, total: competition.entrants.length * competition.settings.attempts }
+    }
+    if (competition.kind === "direct") return { done: competition.status === "finished" ? 1 : 0, total: 1 }
+    const resolved = [...resolveMatches(competitionMatches.filter(m => m.competitionId === competition.id)).values()]
+    const playable = resolved.filter(m => m.state !== "bye" && m.state !== "skipped")
+    return { done: playable.filter(m => m.state === "done").length, total: playable.length }
+  }
+  const totals = competitions.map(progressOf).reduce((acc, p) => ({ done: acc.done + p.done, total: acc.total + p.total }), { done: 0, total: 0 })
+  const activeMatches = competitionMatches.filter(m => m.status === "active").length
+  const completedMatches = totals.done
   const attendedCount = participants.filter(p => p.attendedAt).length
   const attendanceRate = participants.length > 0 ? Math.round((attendedCount / participants.length) * 100) : 0
 
+  const stats = [
+    { label: "Encuentros en pista", value: String(activeMatches), icon: Activity, tone: "text-[hsl(32_95%_45%)]", live: activeMatches > 0 },
+    { label: "Partidas finalizadas", value: `${completedMatches}/${totals.total}`, icon: CheckCircle2, tone: "text-success" },
+    { label: "Asistencia", value: `${attendanceRate}%`, hint: `${attendedCount} de ${participants.length} confirmados`, icon: Users, tone: "text-primary" },
+    { label: "Robots registrados", value: String(robots.length), icon: Cpu, tone: "text-[hsl(265_70%_55%)]" },
+  ]
+
   return (
-    <div className="p-6 md:p-10 w-full max-w-6xl">
-      <div className="mb-10">
-        <h1 className="text-4xl font-serif font-black uppercase mb-2">Panel de Control</h1>
-        <p className="font-mono text-muted-foreground">Resumen operativo del evento.</p>
+    <div className="mx-auto w-full max-w-6xl px-5 py-8 md:px-10 md:py-12">
+      <ControlHeader title="Resumen" description="Estado operativo del evento en tiempo real." />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {stats.map(stat => (
+          <div key={stat.label} className="panel p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-medium text-muted-foreground">{stat.label}</span>
+              <stat.icon size={17} className={`${stat.tone} ${stat.live ? "animate-pulse" : ""}`} />
+            </div>
+            <div className="mt-4 text-[34px] font-semibold leading-none tracking-[-0.04em]">{stat.value}</div>
+            {stat.hint && <div className="mt-2 text-[12px] text-muted-foreground">{stat.hint}</div>}
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <Card className="bg-foreground text-background">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="font-mono text-sm uppercase opacity-80">Encuentros Activos</div>
-              <Activity className="h-5 w-5 animate-pulse text-amber-400" />
-            </div>
-            <div className="text-5xl font-black font-serif">{activeMatches}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="font-mono text-sm uppercase text-muted-foreground">Progreso Partidas</div>
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div className="text-5xl font-black font-serif">{completedMatches}<span className="text-2xl text-muted-foreground">/{matches.length}</span></div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="font-mono text-sm uppercase text-muted-foreground">Asistencia</div>
-              <Users className="h-5 w-5" />
-            </div>
-            <div className="text-5xl font-black font-serif">{attendanceRate}%</div>
-            <div className="font-mono text-xs mt-2 text-muted-foreground">{attendedCount} de {participants.length} confirmados</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="font-mono text-sm uppercase text-muted-foreground">Robots Homologados</div>
-              <ShieldAlert className="h-5 w-5" />
-            </div>
-            <div className="text-5xl font-black font-serif">{robots.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
-          <h2 className="text-2xl font-serif font-bold uppercase mb-6 border-b-2 border-foreground pb-2">Estado por Categoría</h2>
-          <div className="space-y-4">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <section className="panel p-6">
+          <h2 className="text-[19px] font-semibold tracking-[-0.02em]">Progreso por categoría</h2>
+          <ul className="mt-5 space-y-4">
             {categories.map(cat => {
-              const catMatches = matches.filter(m => m.categoryId === cat.id)
-              const completed = catMatches.filter(m => m.status === 'completed').length
-              const total = catMatches.length
-              const progress = total > 0 ? (completed / total) * 100 : 0
-              
+              const competition = competitions.find(c => c.categoryId === cat.id)
+              const { done: completed, total } = progressOf(competition)
+              const progress = competition?.status === "finished" ? 100 : total > 0 ? (completed / total) * 100 : 0
+              const label = !competition ? "Sin generar" : competition.status === "draft" ? "Borrador" : competition.status === "finished" ? "Finalizada" : `${completed}/${total}`
               return (
-                <div key={cat.id} className="border-2 border-foreground p-4 bg-card">
-                  <div className="flex justify-between font-bold uppercase mb-2">
-                    <span>{cat.name}</span>
-                    <span className="font-mono">{completed}/{total}</span>
+                <li key={cat.id}>
+                  <div className="mb-1.5 flex justify-between text-[14px]">
+                    <span className="font-medium">{cat.name}</span>
+                    <span className="tabular text-muted-foreground">{label}</span>
                   </div>
-                  <div className="h-4 bg-muted border-2 border-foreground w-full overflow-hidden">
-                    <div className="h-full bg-foreground transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary transition-[width] duration-700" style={{ width: `${progress}%` }} />
                   </div>
-                </div>
+                </li>
               )
             })}
-          </div>
-        </div>
+          </ul>
+        </section>
 
-        <div>
-          <h2 className="text-2xl font-serif font-bold uppercase mb-6 border-b-2 border-foreground pb-2">Acciones Rápidas</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/control/asistencia" className="group">
-              <Card className="h-full group-hover:bg-foreground group-hover:text-background transition-colors cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-lg">Registro de Asistencia</CardTitle>
-                </CardHeader>
-                <CardContent className="font-mono text-sm opacity-80">
-                  Marcar llegada de delegaciones y validar inscripción.
-                </CardContent>
-              </Card>
+        <section className="flex flex-col gap-4">
+          <h2 className="sr-only">Acciones rápidas</h2>
+          {[
+            { href: "/control/asistencia", title: "Registro de asistencia", text: "Marca la llegada de delegaciones y valida inscripciones.", icon: UserCheck },
+            { href: "/control/competencia", title: "Llamado a pista", text: "Inicia encuentros y registra resultados.", icon: Swords },
+          ].map(action => (
+            <Link key={action.href} href={action.href} className="panel group flex items-center gap-4 p-5 transition-shadow hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,.18)]">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <action.icon size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold tracking-[-0.015em]">{action.title}</span>
+                <span className="block text-[14px] text-muted-foreground">{action.text}</span>
+              </span>
+              <ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link href="/control/competencia" className="group">
-              <Card className="h-full group-hover:bg-foreground group-hover:text-background transition-colors cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-lg">Llamado a Pista</CardTitle>
-                </CardHeader>
-                <CardContent className="font-mono text-sm opacity-80">
-                  Iniciar encuentros y registrar resultados.
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
+          ))}
+        </section>
       </div>
     </div>
   )

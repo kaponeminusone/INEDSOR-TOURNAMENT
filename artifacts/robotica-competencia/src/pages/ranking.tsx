@@ -1,97 +1,95 @@
+import { Trophy } from "lucide-react"
 import { useData } from "@/lib/data"
-import { Trophy, Medal, Award, Building2 } from "lucide-react"
+import { buildLeaderboard, POINTS } from "@/lib/tournament"
 import { InstitutionLogo } from "@/components/institution-logo"
+import { PageHeader } from "@/components/page-header"
+import { Reveal } from "@/components/reveal"
+
+const medalColor = ["text-gold", "text-silver", "text-bronze"]
+const podiumOrder = [1, 0, 2]
+const podiumHeight = ["md:min-h-[340px]", "md:min-h-[300px]", "md:min-h-[270px]"]
 
 export default function Ranking() {
   const { rankings, institutions } = useData()
-
-  const leaderboard = rankings
-    .map(r => ({
-      ...r,
-      institution: institutions.find(i => i.id === r.institutionId),
-      points: (r.gold * 10) + (r.silver * 7) + (r.bronze * 5)
-    }))
-    .filter(r => r.institution)
-    .sort((a, b) => b.points - a.points || b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze)
+  const leaderboard = buildLeaderboard(rankings, institutions)
+  const podium = podiumOrder.map(i => leaderboard[i] ? { row: leaderboard[i], place: i } : null).filter(Boolean) as { row: typeof leaderboard[number]; place: number }[]
 
   return (
-    <div className="ranking-page page-shell">
-      <div className="mb-10 border-b-2 border-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 bg-tab-rank/10 text-tab-rank border border-tab-rank/20">
-              <Trophy className="h-8 w-8" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-serif font-black uppercase text-tab-rank tracking-tight">Clasificación</h1>
+    <div className="pb-24">
+      <PageHeader
+        eyebrow="Ranking"
+        title="Clasificación."
+        description="Medallero por institución. Cada podio suma puntos al colegio del robot."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <span className="chip"><span className="h-2 w-2 rounded-full bg-gold" /> Oro · {POINTS.gold} pts</span>
+            <span className="chip"><span className="h-2 w-2 rounded-full bg-silver" /> Plata · {POINTS.silver} pts</span>
+            <span className="chip"><span className="h-2 w-2 rounded-full bg-bronze" /> Bronce · {POINTS.bronze} pts</span>
           </div>
-          <p className="text-lg font-mono text-muted-foreground">
-            Ranking oficial por instituciones
-          </p>
-        </div>
-        <div className="bg-muted/30 p-4 font-mono text-sm border-2 border-border">
-          <strong className="text-foreground font-black tracking-widest uppercase">Sistema de Puntos:</strong>
-          <ul className="mt-3 space-y-2 text-muted-foreground font-bold text-xs uppercase tracking-wider">
-            <li className="flex items-center gap-2"><div className="w-3 h-3 bg-amber-500"></div> ORO = 10 Pts</li>
-            <li className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-400"></div> PLATA = 7 Pts</li>
-            <li className="flex items-center gap-2"><div className="w-3 h-3 bg-orange-600"></div> BRONCE = 5 Pts</li>
-          </ul>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="border-2 border-border bg-card shadow-[4px_4px_0px_0px_var(--color-border)] overflow-x-auto transition-shadow">
-        <table className="w-full text-left table-layout">
-          <thead>
-            <tr className="border-b-2 border-border bg-muted/20">
-              <th className="p-4 font-serif text-lg uppercase tracking-widest w-20 text-center border-r border-border text-foreground">POS</th>
-              <th className="p-4 font-serif text-lg uppercase tracking-widest border-r border-border text-foreground" colSpan={2}>Institución</th>
-              <th className="p-4 font-mono text-xs uppercase text-center w-28 border-r border-border bg-amber-500/10 text-amber-700">Oro</th>
-              <th className="p-4 font-mono text-xs uppercase text-center w-28 border-r border-border bg-slate-400/10 text-slate-700">Plata</th>
-              <th className="p-4 font-mono text-xs uppercase text-center w-28 border-r border-border bg-orange-600/10 text-orange-700">Bronce</th>
-              <th className="p-4 font-serif text-lg uppercase tracking-widest text-center w-32 bg-foreground text-background">PTS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaderboard.map((row, index) => (
-              <tr 
-                key={row.institutionId} 
-                className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors group"
-              >
-                <td className="p-4 text-center border-r border-border">
-                  <div className="font-serif text-2xl font-bold flex flex-col items-center text-muted-foreground group-hover:text-tab-rank transition-colors">
-                    {index === 0 && <Trophy className="h-5 w-5 text-amber-500 mb-1" />}
-                    {index === 1 && <Medal className="h-5 w-5 text-slate-400 mb-1" />}
-                    {index === 2 && <Award className="h-5 w-5 text-orange-600 mb-1" />}
-                    <span>{index + 1}</span>
+      <div className="container-apple">
+        <p className="-mt-4 mb-8 text-[13px] text-muted-foreground">
+          El reglamento oficial no define un sistema de puntos por institución; esta tabla es orientativa hasta que la organización lo confirme.
+        </p>
+        {leaderboard.length === 0 ? (
+          <div className="tile tile-muted p-16 text-center text-muted-foreground">Aún no hay puntuaciones registradas en la competencia.</div>
+        ) : (
+          <>
+            <div className="grid items-end gap-4 md:grid-cols-3">
+              {podium.map(({ row, place }, i) => (
+                <Reveal key={row.institutionId} delay={i * 0.1} className={place === 0 ? "order-first md:order-none" : ""}>
+                  <div className={`tile flex flex-col items-center justify-end p-8 text-center ${place === 0 ? "bg-foreground text-background" : "tile-muted"} ${podiumHeight[place]}`}>
+                    <Trophy size={place === 0 ? 30 : 24} className={medalColor[place]} strokeWidth={1.8} />
+                    <InstitutionLogo institution={row.institution} className={`mt-5 h-16 w-16 shrink-0 rounded-2xl text-[16px] ${place === 0 ? "bg-white/10 text-white" : "bg-card"}`} />
+                    <h2 className="mt-4 text-[19px] font-semibold leading-tight tracking-[-0.02em]">{row.institution.name}</h2>
+                    <div className="mt-3 text-[40px] font-semibold leading-none tracking-[-0.045em]">{row.points}</div>
+                    <div className={`mt-1 text-[13px] ${place === 0 ? "text-white/60" : "text-muted-foreground"}`}>puntos · {place + 1}.º lugar</div>
                   </div>
-                </td>
-                <td className="p-4 w-24 text-center">
-                  <InstitutionLogo 
-                    institution={row.institution!} 
-                    className="w-12 h-12 mx-auto border-2 border-border group-hover:border-tab-rank/50 transition-colors bg-white"
-                  />
-                </td>
-                <td className="p-4 border-r border-border">
-                  <div className="font-bold text-xl uppercase tracking-tight group-hover:text-tab-rank transition-colors">{row.institution!.name}</div>
-                  <div className="font-mono text-xs text-muted-foreground mt-1 flex gap-4">
-                    <span><strong>SIGLA:</strong> {row.institution!.initials}</span>
-                    <span><strong>COACH:</strong> {row.institution!.coach || 'N/A'}</span>
-                  </div>
-                </td>
-                <td className="p-4 text-center font-mono text-2xl font-bold border-r border-border text-amber-600">{row.gold}</td>
-                <td className="p-4 text-center font-mono text-2xl font-bold border-r border-border text-slate-500">{row.silver}</td>
-                <td className="p-4 text-center font-mono text-2xl font-bold border-r border-border text-orange-600">{row.bronze}</td>
-                <td className="p-4 text-center font-serif text-3xl font-black bg-muted/10 group-hover:bg-tab-rank/10 transition-colors text-foreground group-hover:text-tab-rank">{row.points}</td>
-              </tr>
-            ))}
-            {leaderboard.length === 0 && (
-              <tr>
-                <td colSpan={7} className="p-16 text-center font-mono text-muted-foreground text-lg">
-                  Aún no hay puntuaciones registradas en la competencia.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </Reveal>
+              ))}
+            </div>
+
+            <Reveal className="mt-14">
+              <h2 className="headline-md mb-6">Tabla completa.</h2>
+              <div className="overflow-x-auto rounded-[22px] border border-border">
+                <table className="table-apple min-w-[640px]">
+                  <thead>
+                    <tr>
+                      <th className="w-16 text-center">#</th>
+                      <th>Institución</th>
+                      <th className="w-24 text-center">Oro</th>
+                      <th className="w-24 text-center">Plata</th>
+                      <th className="w-24 text-center">Bronce</th>
+                      <th className="w-28 text-right">Puntos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.map((row, index) => (
+                      <tr key={row.institutionId}>
+                        <td className="text-center text-[17px] font-semibold text-muted-foreground">{index + 1}</td>
+                        <td>
+                          <div className="flex items-center gap-3.5">
+                            <InstitutionLogo institution={row.institution} className="h-10 w-10 shrink-0 rounded-xl text-[12px]" />
+                            <div className="min-w-0">
+                              <div className="font-semibold tracking-[-0.015em]">{row.institution.name}</div>
+                              <div className="text-[13px] text-muted-foreground">{row.institution.initials} · Coach: {row.institution.coach || "Sin asignar"}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="tabular text-center">{row.gold}</td>
+                        <td className="tabular text-center">{row.silver}</td>
+                        <td className="tabular text-center">{row.bronze}</td>
+                        <td className="tabular text-right text-[19px] font-semibold tracking-[-0.02em]">{row.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Reveal>
+          </>
+        )}
       </div>
     </div>
   )

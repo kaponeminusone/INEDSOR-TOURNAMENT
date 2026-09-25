@@ -1,110 +1,160 @@
 import { useRoute, Link } from "wouter"
+import { AlertTriangle, ChevronLeft, ChevronRight, Cpu, FileText, SearchX } from "lucide-react"
 import { useData } from "@/lib/data"
-import { ArrowLeft, User, ShieldAlert } from "lucide-react"
 import { categoryImages } from "@/lib/category-images"
+import { modalityOf } from "@/lib/tournament"
+import { regulationFor, REGULATION_PDF } from "@/lib/regulations"
+import { Reveal } from "@/components/reveal"
+
+function SpecTable({ title, rows }: { title: string; rows: { label: string; text: string }[] }) {
+  return (
+    <div>
+      <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{title}</h3>
+      <dl className="mt-3 border-t border-border">
+        {rows.map(row => (
+          <div key={row.label} className="grid gap-1 border-b border-border py-4 sm:grid-cols-[180px_1fr] sm:gap-6">
+            <dt className="text-[15px] font-semibold tracking-[-0.01em]">{row.label}</dt>
+            <dd className="text-[15px] leading-relaxed text-foreground/80">{row.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
+}
 
 export default function CategoryDetail() {
   const [, params] = useRoute("/categorias/:slug")
-  const { categories, robots, institutions } = useData()
-  
+  const { categories, robots, participants, institutions } = useData()
   const category = categories.find(c => c.slug === params?.slug)
 
   if (!category) {
     return (
-      <div className="py-20 text-center flex flex-col items-center">
-        <ShieldAlert className="h-16 w-16 mb-4 text-muted-foreground" />
-        <h1 className="text-3xl font-serif uppercase font-bold mb-4">Categoría no encontrada</h1>
-        <Link href="/categorias" className="soft-button primary">Volver a categorías</Link>
+      <div className="container-apple flex min-h-[60dvh] flex-col items-center justify-center py-24 text-center">
+        <SearchX size={40} className="text-muted-foreground" strokeWidth={1.5} />
+        <h1 className="headline-md mt-5">Categoría no encontrada.</h1>
+        <p className="mt-2 text-muted-foreground">Es posible que el enlace haya cambiado.</p>
+        <Link href="/categorias" className="btn-pill btn-primary mt-8">Ver categorías</Link>
       </div>
     )
   }
 
-  // Get robots registered in this category
-  const registeredRobots = robots.filter(r => r.categories.includes(category.id))
+  const reg = regulationFor(category.slug)
+  const registered = robots.filter(r => r.categories.includes(category.id))
+  const institutionOf = (participantId: string | null) => {
+    const owner = participants.find(p => p.id === participantId)
+    return institutions.find(i => i.id === owner?.institutionId)
+  }
+  const image = categoryImages[category.slug]
+  const hasBracket = true
 
   return (
-    <div className="category-detail-page page-shell">
-      <Link href="/categorias" className="inline-flex items-center font-mono text-sm font-bold uppercase hover:underline mb-8">
-        <ArrowLeft className="mr-2 h-4 w-4" /> VOLVER
-      </Link>
+    <div className="pb-24">
+      <section className="section-dark relative overflow-hidden">
+        {image && <img src={image} alt={`Imagen ilustrativa de ${category.name}`} className="absolute inset-0 h-full w-full object-cover opacity-55" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/30" />
+        <div className="container-apple relative flex min-h-[440px] flex-col justify-end pb-12 pt-10 md:min-h-[540px] md:pb-16">
+          <Link href="/categorias" className="mb-auto inline-flex w-fit items-center gap-1 text-[14px] text-white/75 transition-colors hover:text-white">
+            <ChevronLeft size={16} /> Categorías
+          </Link>
+          <span className="chip chip-dark w-fit">{reg ? `${reg.number} · ${reg.headerTag}` : modalityOf(category)}</span>
+          <h1 className="headline-hero mt-4">{category.name}</h1>
+          {reg && <p className="mt-4 max-w-2xl text-[19px] leading-relaxed text-white/80 md:text-[21px]">{reg.summary}</p>}
+          <div className="mt-8 flex flex-wrap gap-4">
+            {hasBracket && <Link href={`/bracket?category=${category.id}`} className="btn-pill btn-primary">Ver competencia</Link>}
+            <a href={REGULATION_PDF} target="_blank" rel="noreferrer" className="btn-pill btn-ghost-dark">
+              <FileText size={16} /> Reglamento{reg ? ` · pág. ${reg.page}` : ""}
+            </a>
+          </div>
+          {image && <span className="absolute bottom-4 right-6 text-[11px] text-white/50">Imagen ilustrativa</span>}
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <div className="lg:col-span-2">
-          <h1 className="text-5xl md:text-7xl font-serif font-black uppercase mb-6 leading-none">
-            {category.name}
-          </h1>
-          {categoryImages[category.slug] && (
-            <figure className="category-detail-photo">
-              <img src={categoryImages[category.slug]} alt={`Imagen ilustrativa de ${category.name}`} decoding="async" />
-              <figcaption>Imagen ilustrativa de la categoría</figcaption>
-            </figure>
+      <section className="container-apple">
+        <div className="grid grid-cols-2 border-b border-border md:grid-cols-4">
+          {(reg?.highlights ?? [{ label: "Modalidad", value: modalityOf(category) }]).map(spec => (
+            <div key={spec.label} className="py-8 pr-4">
+              <div className="text-[26px] font-semibold leading-tight tracking-[-0.03em] md:text-[30px]">{spec.value}</div>
+              <div className="mt-1 text-[14px] text-muted-foreground">{spec.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {reg ? (
+          <>
+            <div className="grid gap-12 py-16 md:grid-cols-2 md:gap-16 md:py-20">
+              <Reveal>
+                <h2 className="headline-md">Cómo se juega.</h2>
+                <ul className="mt-6 space-y-4">
+                  {reg.howToPlay.map(item => (
+                    <li key={item} className="flex gap-3 text-[17px] leading-relaxed">
+                      <span className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </Reveal>
+              <Reveal delay={0.08}>
+                <div className="tile tile-muted p-7 md:p-8">
+                  <h2 className="flex items-center gap-2.5 text-[22px] font-semibold tracking-[-0.025em]">
+                    <AlertTriangle size={20} className="text-brand-red" /> Faltas y sanciones
+                  </h2>
+                  <ul className="mt-5 space-y-3.5">
+                    {reg.fouls.map(item => {
+                      const [fault, sanction] = item.split(/:\s(?=[^:]*$)/)
+                      return (
+                        <li key={item} className="text-[15px] leading-relaxed">
+                          {sanction ? <><span className="text-foreground/80">{fault}:</span> <span className="font-semibold">{sanction}</span></> : item}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              </Reveal>
+            </div>
+
+            <Reveal className="grid gap-12 border-t border-border pt-16 md:grid-cols-2 md:gap-16 md:pt-20">
+              <SpecTable title="Robot" rows={reg.robot} />
+              <SpecTable title={reg.field.title} rows={reg.field.items} />
+            </Reveal>
+          </>
+        ) : (
+          <p className="py-16 text-[17px] leading-relaxed">{category.rules}</p>
+        )}
+
+        <Reveal className="mt-20">
+          <div className="flex items-baseline justify-between">
+            <h2 className="headline-md">Inscritos.</h2>
+            <span className="text-[15px] text-muted-foreground">{registered.length} {registered.length === 1 ? "robot" : "robots"}</span>
+          </div>
+          {registered.length === 0 ? (
+            <div className="tile tile-muted mt-6 p-10 text-center text-muted-foreground">
+              Aún no hay inscritos en esta categoría.
+            </div>
+          ) : (
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {registered.map(robot => {
+                const inst = institutionOf(robot.participantId)
+                return (
+                  <li key={robot.id} className="tile tile-muted flex items-center gap-4 p-4">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-primary">
+                      <Cpu size={20} strokeWidth={1.7} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[17px] font-semibold tracking-[-0.02em]">{robot.name}</span>
+                      <span className="block truncate text-[13px] text-muted-foreground">{inst?.name ?? "Sin institución asignada"}</span>
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
           )}
-          
-          <div className="flex flex-wrap gap-4 mb-8 font-mono text-sm">
-            <div className="border-2 border-foreground px-4 py-2 bg-muted">
-              FORMATO: <strong className="uppercase">{category.format}</strong>
-            </div>
-            <div className="border-2 border-foreground px-4 py-2 bg-muted">
-              INICIO: <strong>{category.startTime}</strong>
-            </div>
-            <div className="border-2 border-foreground px-4 py-2 bg-muted">
-              TAMAÑO EQUIPO: <strong>{category.teamSize} PAX</strong>
-            </div>
-          </div>
-
-          <div className="border-t-4 border-foreground pt-8 mb-12">
-            <h2 className="text-3xl font-serif font-bold uppercase mb-4">Reglamento y Formato</h2>
-            <div className="prose prose-p:font-mono prose-p:text-muted-foreground max-w-none">
-              <p className="text-lg">{category.rules}</p>
-              <p className="mt-4">
-                Todos los robots deben ser homologados antes del inicio de la competencia. 
-                Los participantes que no se presenten al llamado en 3 minutos serán descalificados por Walkover (W.O.).
-              </p>
-            </div>
-          </div>
-
-          <div className="border-t-4 border-foreground pt-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-serif font-bold uppercase">Robots Inscritos</h2>
-              <span className="font-mono text-2xl font-bold bg-foreground text-background px-4 py-1">
-                {registeredRobots.length}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {registeredRobots.map(robot => (
-                <div key={robot.id} className="border-2 border-foreground p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors">
-                  <div className="h-12 w-12 bg-muted border-2 border-foreground flex items-center justify-center">
-                    <User className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="font-bold uppercase text-lg">{robot.name}</div>
-                    <div className="font-mono text-xs text-muted-foreground">ID: {robot.id.toUpperCase()}</div>
-                  </div>
-                </div>
-              ))}
-              
-              {registeredRobots.length === 0 && (
-                <div className="col-span-full border-2 border-dashed border-foreground/30 p-8 text-center font-mono text-muted-foreground">
-                  No hay robots inscritos en esta categoría.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 border-4 border-foreground bg-card p-6">
-            <h3 className="text-2xl font-serif font-bold uppercase mb-4 border-b-2 border-foreground pb-4">
-              Acciones
-            </h3>
-            <div className="flex flex-col gap-4">
-              <Link href={`/bracket?category=${category.id}`} className="soft-button primary w-full">Ver llaves</Link>
-              <Link href={`/control/competencia?category=${category.id}`} className="soft-button w-full">Gestionar encuentros</Link>
-            </div>
-          </div>
-        </div>
-      </div>
+          {hasBracket && (
+            <Link href={`/bracket?category=${category.id}`} className="link-chevron mt-6 text-[17px]">
+              Seguir los encuentros <ChevronRight size={17} />
+            </Link>
+          )}
+        </Reveal>
+      </section>
     </div>
   )
 }

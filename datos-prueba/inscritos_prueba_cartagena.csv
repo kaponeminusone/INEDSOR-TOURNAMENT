@@ -1,0 +1,78 @@
+﻿institución,sigla,coach,nombre,correo,whatsapp,grado,robot,categorías
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Alejandro Castro Cabarcas,alejandro.castro@correo.test,555-0150,11°,Relámpago Rojo,seguidor-de-linea
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Emmanuel Buelvas Pérez,emmanuel.buelvas@correo.test,555-0156,6°,Tornado Caribe,sumo-rc
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Esteban Torres Padilla,esteban.torres@correo.test,555-0157,11°,Pulsar Prime,carrera-rc
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Gabriela Díaz Caraballo,gabriela.diaz@correo.test,555-0153,7°,Coral Walled,sumo-rc
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Juan David Blanco Zúñiga,juan.blanco@correo.test,555-0149,10°,Fénix Pro,carrera-rc
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Mateo Herrera Morales,mateo.herrera@correo.test,555-0155,8°,Dron Vórtice Zeta,circuito-dron
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Nicolás Marrugo Caraballo,nicolas.marrugo@correo.test,555-0151,10°,Cometa Manga,explotaglobos
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Sara Díaz Cabarcas,sara.diaz@correo.test,555-0152,9°,Titán Zeta,sumo-rc
+Colegio Biffi La Salle,BIFFI,Patricia Cabarcas,Tomás Pérez Julio,tomas.perez@correo.test,555-0154,9°,Kraken Prime,explotaglobos
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Carlos Andrés Rodríguez Gómez,carlos.rodriguez@correo.test,555-0127,9°,Cometa Negro,minisumo
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Esteban Zúñiga Torres,esteban.zuniga@correo.test,555-0129,9°,Rayo Prime,laberinto-rc
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Esteban Zúñiga Torres,esteban.zuniga@correo.test,555-0129,9°,Fénix Rojo,sumo
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Luis Carlos Buelvas Marrugo,luis.buelvas@correo.test,555-0122,6°,Centella Prime,sumo-rc
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Luis Carlos Jiménez Julio,luis.jimenez@correo.test,555-0125,11°,Kraken Caribe,carrera-rc
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,María José Torres Marrugo,maria.torres@correo.test,555-0124,9°,Atlas Bot,explotaglobos
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Natalia Caraballo Pérez,natalia.caraballo@correo.test,555-0121,10°,Rayo Rojo,minisumo
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Natalia Pájaro Julio,natalia.pajaro@correo.test,555-0123,11°,Jaguar Heroico,explotaglobos
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Natalia Pájaro Julio,natalia.pajaro@correo.test,555-0123,11°,Tornado Bocagrande,seguidor-de-linea
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Salomé Pájaro Torres,salome.pajaro@correo.test,555-0126,11°,Relámpago X,sumo
+Colegio Salesiano San Pedro Claver,CSPC,Hernando Padilla,Sara Gómez Caraballo,sara.gomez@correo.test,555-0128,11°,Tornado Negro,laberinto-rc
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Alejandro Padilla Salgado,alejandro.padilla@correo.test,555-0136,6°,Tritón Manga,sumo
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Ana Sofía Guerrero Rodríguez,ana.guerrero@correo.test,555-0133,11°,Tornado Rojo,futbolito
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Antonella Salgado Díaz,antonella.salgado@correo.test,555-0134,9°,Titán Caribe,laberinto-rc
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Antonella Salgado Díaz,antonella.salgado@correo.test,555-0134,9°,Kraken Negro,seguidor-de-linea
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Jesús Salgado Barrios,jesus.salgado@correo.test,555-0138,9°,Pulsar Azul,minisumo
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Jhon Zúñiga Zúñiga,jhon.zuniga@correo.test,555-0137,10°,Tornado Pro,sumo-rc
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,María José Guerrero Cassiani,maria.guerrero@correo.test,555-0130,8°,Pulsar Rojo,minisumo
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,María José Gómez Pájaro,maria.gomez@correo.test,555-0135,6°,Halcón Mini,futbolito
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Salomé Caraballo Díaz,salome.caraballo@correo.test,555-0132,9°,Rayo Getsemaní,sumo-rc
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Salomé Caraballo Díaz,salome.caraballo@correo.test,555-0132,9°,Dron Fénix Bocagrande,circuito-dron
+Institución Educativa Antonia Santos,IEAS,Claudia Orozco,Santiago Herrera Marrugo,santiago.herrera@correo.test,555-0131,11°,Dron Coral Rojo,circuito-dron
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Andrés Martínez Julio,andres.martinez@correo.test,555-0144,10°,Cometa Zeta,carrera-rc
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Antonella Orozco Julio,antonella.orozco@correo.test,555-0140,7°,Fénix Zeta,minisumo
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Antonella Zúñiga Arrieta,antonella.zuniga@correo.test,555-0147,7°,Vórtice Prime,futbolito
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Carlos Andrés Martínez Torres,carlos.martinez@correo.test,555-0148,10°,Escorpión Mini,carrera-rc
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Carlos Andrés Morales Castro,carlos.morales@correo.test,555-0143,10°,Mantis X,minisumo
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Emmanuel Marrugo Pérez,emmanuel.marrugo@correo.test,555-0146,8°,Boa Pro,minisumo
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Julián Castro Mendoza,julian.castro@correo.test,555-0139,8°,Relámpago 2.0,seguidor-de-linea
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Kevin Marrugo Salgado,kevin.marrugo@correo.test,555-0141,6°,Kraken Getsemaní,sumo-rc
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Mariana Pérez Salgado,mariana.perez@correo.test,555-0142,10°,Kraken 2.0,laberinto-rc
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Mariana Pérez Salgado,mariana.perez@correo.test,555-0142,10°,Dron Relámpago Zeta,circuito-dron
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Sebastián Buelvas Gómez,sebastian.buelvas@correo.test,555-0145,8°,Halcón 2.0,minisumo
+Institución Educativa Olga González Arraut,IEOGA,Jorge Villalba,Sebastián Buelvas Gómez,sebastian.buelvas@correo.test,555-0145,8°,Cóndor Bot,laberinto-rc
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Antonella Pájaro Padilla,antonella.pajaro@correo.test,555-0108,7°,Mantis Bot,minisumo
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Jhon Martínez Pérez,jhon.martinez@correo.test,555-0105,10°,Vórtice Mini,minisumo
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Jhon Pérez Morales,jhon.perez@correo.test,555-0107,11°,Titán Azul,seguidor-de-linea
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Luciana Rodríguez Orozco,luciana.rodriguez@correo.test,555-0109,8°,Orca Turbo,seguidor-de-linea
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Mariana Julio Cassiani,mariana.julio@correo.test,555-0106,6°,Cometa Walled,laberinto-rc
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Samuel Martínez Blanco,samuel.martinez@correo.test,555-0102,10°,Tritón Prime,explotaglobos
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Sofía Padilla Díaz,sofia.padilla@correo.test,555-0101,10°,Escorpión Caribe,sumo
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Tomás Arrieta Díaz,tomas.arrieta@correo.test,555-0110,11°,Kraken Manga,sumo-rc
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Tomás Arrieta Díaz,tomas.arrieta@correo.test,555-0110,11°,Coral Max,seguidor-de-linea
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Yuliana Cabarcas Caraballo,yuliana.cabarcas@correo.test,555-0103,10°,Vórtice Bot,sumo
+Institución Educativa Soledad Román de Núñez,IESRN,Rafael Cassiani,Yuliana Morales Arrieta,yuliana.morales@correo.test,555-0104,9°,Vórtice Pro,futbolito
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Andrés Mendoza Barrios,andres.mendoza@correo.test,555-0164,6°,Jaguar Zeta,sumo
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Andrés Mendoza Barrios,andres.mendoza@correo.test,555-0164,6°,Mantis Prime,seguidor-de-linea
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Andrés Mendoza Barrios,andres.mendoza@correo.test,555-0164,6°,Coral Mini,futbolito
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Andrés Torres Zúñiga,andres.torres@correo.test,555-0166,11°,Dron Atlas X,circuito-dron
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Antonella Salgado Ortega,antonella.salgado2@correo.test,555-0159,10°,Orca Manga,seguidor-de-linea
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Camila Cabarcas Blanco,camila.cabarcas@correo.test,555-0161,8°,Tritón 2.0,minisumo
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Carlos Andrés Morales Herrera,carlos.morales2@correo.test,555-0165,9°,Dron Escorpión 2.0,circuito-dron
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Mateo Gómez Villalba,mateo.gomez@correo.test,555-0163,6°,Cometa 2.0,futbolito|carrera-rc
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Nicolás Marrugo Ortega,nicolas.marrugo2@correo.test,555-0160,10°,Cóndor Rojo,seguidor-de-linea
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Salomé Blanco Martínez,salome.blanco@correo.test,555-0162,11°,Cometa Max,minisumo
+Institución Educativa Técnica de Pasacaballos,IETP,Álvaro Salgado,Sara Salgado Padilla,sara.salgado@correo.test,555-0158,6°,Rayo Max,seguidor-de-linea
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Ana Sofía Orozco Salgado,ana.orozco@correo.test,555-0115,9°,Fénix Getsemaní,sumo
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Antonella Jiménez Julio,antonella.jimenez@correo.test,555-0117,9°,Vórtice Caribe,explotaglobos
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Antonella Villalba Díaz,antonella.villalba@correo.test,555-0119,8°,Relámpago Max,sumo-rc|explotaglobos
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Esteban Caraballo Buelvas,esteban.caraballo@correo.test,555-0118,10°,Atlas 2.0,carrera-rc
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Kevin Ortega Torres,kevin.ortega@correo.test,555-0120,10°,Jaguar Walled,carrera-rc
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Mariana Villalba Ortega,mariana.villalba@correo.test,555-0116,10°,Halcón Pro,futbolito
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Mariana Villalba Ortega,mariana.villalba@correo.test,555-0116,10°,Fénix Manga,carrera-rc
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Mateo Arrieta Padilla,mateo.arrieta@correo.test,555-0111,6°,Mantis Zeta,sumo-rc
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Salomé Marrugo Mendoza,salome.marrugo@correo.test,555-0113,11°,Titán Turbo,sumo
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Sara Pérez Jiménez,sara.perez@correo.test,555-0114,11°,Boa Caribe,explotaglobos
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Yuliana Gómez Cassiani,yuliana.gomez@correo.test,555-0112,8°,Fénix Bocagrande,futbolito
+Institución Educativa INEM José Manuel Rodríguez Torices,INEM,Liliana Marrugo,Yuliana Gómez Cassiani,yuliana.gomez@correo.test,555-0112,8°,Dron Boa Pro,circuito-dron

@@ -1,258 +1,309 @@
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "wouter"
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
+import { ChevronLeft, ChevronRight, FileText, Trophy } from "lucide-react"
 import { useData } from "@/lib/data"
-import { ArrowRight, Trophy, Users, Activity, Building2, Layers } from "lucide-react"
+import { categoryImages } from "@/lib/category-images"
+import { buildLeaderboard, kindOf, modalityOf } from "@/lib/tournament"
+import { DAY_PLAN, ESSENTIALS, EVENT, REGULATION_PDF } from "@/lib/regulations"
 import { InstitutionLogo } from "@/components/institution-logo"
+import { Reveal } from "@/components/reveal"
+import heroImage from "@assets/generated_images/inedsor-sumo.jpg"
 
 function RollingDigit({ digit }: { digit: string }) {
-  const num = parseInt(digit, 10);
-  if (isNaN(num)) return <span>{digit}</span>;
-
+  const num = Number(digit)
   return (
-    <div className="rolling-digit-container h-[1em] overflow-hidden leading-[1em] align-top relative">
-      <div 
-        className="transition-transform duration-700 ease-in-out flex flex-col" 
-        style={{ transform: `translateY(-${num * 10}%)` }}
-      >
-        {['0','1','2','3','4','5','6','7','8','9'].map((d) => (
-          <div key={d} className="h-full flex items-center justify-center">{d}</div>
-        ))}
-      </div>
-    </div>
+    <span className="rolling-digit" aria-hidden="true">
+      <span style={{ transform: `translateY(-${num}em)` }}>
+        {Array.from({ length: 10 }, (_, d) => <span key={d}>{d}</span>)}
+      </span>
+    </span>
   )
 }
 
-function RollingNumber({ value, pad = 2 }: { value: number, pad?: number }) {
-  const chars = value.toString().padStart(pad, '0').split('');
+function RollingNumber({ value, pad = 2 }: { value: number; pad?: number }) {
+  const text = value.toString().padStart(pad, "0")
   return (
-    <div className="flex tabular-nums">
-      {chars.map((c, i) => <RollingDigit key={i} digit={c} />)}
-    </div>
+    <span className="tabular inline-flex">
+      <span className="sr-only">{text}</span>
+      {text.split("").map((c, i) => <RollingDigit key={i} digit={c} />)}
+    </span>
   )
 }
 
-export default function Home() {
-  const { categories, institutions, rankings } = useData()
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-
-  const topInstitutions = rankings
-    .map(r => ({
-      ...r,
-      institution: institutions.find(i => i.id === r.institutionId),
-      points: (r.gold * 10) + (r.silver * 7) + (r.bronze * 5)
-    }))
-    .filter(r => r.institution)
-    .sort((a, b) => b.points - a.points || b.gold - a.gold)
-    .slice(0, 5)
-
-  useEffect(() => {
-    const target = new Date("2026-11-14T09:00:00-05:00")
-
-    const updateCountdown = () => {
-      const now = new Date()
-      const diff = Math.max(0, target.getTime() - now.getTime())
-      
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000),
-      })
+function useCountdown(target: Date) {
+  const compute = () => {
+    const diff = Math.max(0, target.getTime() - Date.now())
+    return {
+      days: Math.floor(diff / 86_400_000),
+      hours: Math.floor((diff % 86_400_000) / 3_600_000),
+      minutes: Math.floor((diff % 3_600_000) / 60_000),
+      seconds: Math.floor((diff % 60_000) / 1000),
     }
-
-    updateCountdown()
-    const timer = setInterval(updateCountdown, 1000)
-
+  }
+  const [time, setTime] = useState(compute)
+  useEffect(() => {
+    const timer = setInterval(() => setTime(compute()), 1000)
     return () => clearInterval(timer)
   }, [])
+  return time
+}
+
+const eventDateRaw = new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Bogota" }).format(EVENT.date)
+const eventDate = eventDateRaw.charAt(0).toUpperCase() + eventDateRaw.slice(1)
+const EVENT_END = EVENT.date.getTime() + 86_400_000
+
+export default function Home() {
+  const { categories, institutions, rankings, participants, robots } = useData()
+  const time = useCountdown(EVENT.date)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
+  const phase = now < EVENT.date.getTime() ? "before" : now < EVENT_END ? "today" : "after"
+  const reduce = useReducedMotion()
+  const heroRef = useRef<HTMLElement>(null)
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] })
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, reduce ? 1 : 1.12])
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", reduce ? "0%" : "12%"])
+
+  const leaders = buildLeaderboard(rankings, institutions).slice(0, 3)
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = scrollerRef.current
+    if (el) el.scrollBy({ left: dir * Math.min(el.clientWidth * 0.8, 700), behavior: "smooth" })
+  }
+
+  const stats = [
+    { value: categories.length, label: "categorías de competencia" },
+    { value: participants.length, label: "participantes inscritos" },
+    { value: robots.length, label: "robots en pista" },
+    { value: institutions.length, label: "instituciones" },
+  ]
 
   return (
-    <div className="home-page flex flex-col w-full bg-background">
-      <section className="relative w-full overflow-hidden bg-[#243f68] text-white min-h-[330px] flex flex-col items-center justify-center px-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#243f68] via-[#243f68] to-[#7d3540] opacity-80" />
-        <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.18) 50%, transparent 50.1%)', backgroundSize: '80px 80px' }} />
-
-        <div className="relative z-10 text-center max-w-4xl mx-auto w-full py-12 flex flex-col items-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 bg-white/10 font-mono text-xs uppercase tracking-wider text-white mb-5">
-            <Building2 className="h-4 w-4" />
-            <span>Institución Educativa Soledad Román de Núñez</span>
-          </div>
-          
-          <h1 className="font-serif font-extrabold uppercase leading-tight tracking-tight mb-2 text-white text-[clamp(2rem,4vw,3rem)]">
-            TORNEO INEDSOR
-          </h1>
-          <p className="text-[13px] text-white/75 max-w-xl">Ingenio, estrategia y robótica en una jornada de competencia escolar.</p>
-
-          <div className="flex flex-wrap justify-center gap-3 mt-6 w-full px-4 sm:px-0">
-            <Link href="/categorias" className="soft-button bg-background text-primary hover:bg-background/90 border-transparent w-full sm:w-auto">Explorar categorías <ArrowRight size={15} /></Link>
-            <Link href="/ranking" className="soft-button bg-white/10 border-white/25 text-white hover:bg-white/20 w-full sm:w-auto">Ver clasificación</Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-[#192d48] text-[#eef4f8] border-b border-border relative z-20">
-        <div className="max-w-5xl mx-auto py-6 px-4 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="font-mono text-sm uppercase tracking-widest opacity-80 whitespace-nowrap font-bold">
-            La competencia inicia en:
-          </div>
-          <div className="flex gap-4 md:gap-8 items-center font-mono font-bold text-xl md:text-2xl md:pl-12 lg:pl-20">
-            <div className="flex flex-col items-center">
-              <RollingNumber value={timeLeft.days} pad={3} />
-              <span className="text-[10px] md:text-xs opacity-50 mt-1 tracking-widest">DÍAS</span>
-            </div>
-            <span className="opacity-30 mb-5">:</span>
-            <div className="flex flex-col items-center">
-              <RollingNumber value={timeLeft.hours} />
-              <span className="text-[10px] md:text-xs opacity-50 mt-1 tracking-widest">HRS</span>
-            </div>
-            <span className="opacity-30 mb-5">:</span>
-            <div className="flex flex-col items-center">
-              <RollingNumber value={timeLeft.minutes} />
-              <span className="text-[10px] md:text-xs opacity-50 mt-1 tracking-widest">MIN</span>
-            </div>
-            <span className="opacity-30 mb-5">:</span>
-            <div className="flex flex-col items-center text-tab-cat">
-              <RollingNumber value={timeLeft.seconds} />
-              <span className="text-[10px] md:text-xs opacity-50 mt-1 tracking-widest text-foreground">SEG</span>
+    <div>
+      {/* Hero */}
+      <section ref={heroRef} className="section-dark relative overflow-hidden">
+        <div className="hero-glow" />
+        <div className="container-apple relative pt-16 text-center md:pt-24">
+          <div>
+            <span className="chip chip-dark mb-6">{EVENT.institution}</span>
+            <h1 className="headline-hero">Torneo INEDSOR.</h1>
+            <p className="headline-md mt-3 text-gradient font-semibold">Ingenio. Estrategia. Robótica.</p>
+            <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-[#a1a1a6] md:text-[19px]">
+              Competencia de robótica y dron: estudiantes ponen a prueba sus robots en {categories.length} categorías.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link href="/categorias" className="btn-pill btn-primary">Explorar categorías</Link>
+              <Link href="/ranking" className="btn-pill btn-ghost-dark">Ver clasificación</Link>
             </div>
           </div>
         </div>
-      </section>
 
-      <section className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
-          <div className="p-8 flex items-center justify-center gap-6 group hover:bg-tab-cat/5 transition-colors">
-            <div className="bg-tab-cat/10 p-4 rounded-none text-tab-cat transition-transform group-hover:scale-110">
-              <Layers className="h-8 w-8" />
-            </div>
-            <div>
-              <div className="text-2xl font-serif font-black text-tab-cat">{categories.length}</div>
-              <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Categorías</div>
-            </div>
-          </div>
-          <div className="p-8 flex items-center justify-center gap-6 group hover:bg-inedsor-blue/5 transition-colors">
-            <div className="bg-inedsor-blue/10 p-4 rounded-none text-inedsor-blue transition-transform group-hover:scale-110">
-              <Users className="h-8 w-8" />
-            </div>
-            <div>
-              <div className="text-2xl font-serif font-black text-inedsor-blue">3</div>
-              <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Participantes</div>
-            </div>
-          </div>
-          <div className="p-8 flex items-center justify-center gap-6 group hover:bg-tab-rank/5 transition-colors">
-            <div className="bg-tab-rank/10 p-4 rounded-none text-tab-rank transition-transform group-hover:scale-110">
-              <Building2 className="h-8 w-8" />
-            </div>
-            <div>
-              <div className="text-2xl font-serif font-black text-tab-rank">3</div>
-              <div className="font-mono text-sm uppercase text-muted-foreground font-bold tracking-wider">Instituciones</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto w-full space-y-20">
-        
-        <div className="space-y-6">
-          <div className="flex justify-between items-end border-b-4 border-tab-rank pb-4">
-            <div>
-              <h2 className="text-3xl md:text-5xl font-serif font-black uppercase flex items-center gap-3 text-tab-rank">
-                Top Instituciones <Trophy className="h-8 w-8 text-tab-rank" />
-              </h2>
-              <p className="font-mono text-muted-foreground mt-2 text-lg">Líderes de la competencia actual</p>
-            </div>
-            <Link href="/ranking" className="soft-button hidden sm:inline-flex">Ver ranking completo <ArrowRight size={14} /></Link>
-          </div>
-
-          <div className="bg-card border-2 border-border shadow-[8px_8px_0px_0px_var(--color-tab-rank)] overflow-x-auto transition-shadow">
-            <table className="table-layout w-full min-w-[920px]">
-              <thead>
-                <tr className="bg-tab-rank/10">
-                  <th className="w-16 text-center text-tab-rank border-tab-rank/20">POS</th>
-                  <th className="w-20 border-tab-rank/20">LOGO</th>
-                  <th className="border-tab-rank/20 text-tab-rank">INSTITUCIÓN</th>
-                  <th className="text-center w-24 border-tab-rank/20 text-tab-rank">ORO</th>
-                  <th className="text-center w-24 border-tab-rank/20 text-tab-rank">PUNTOS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topInstitutions.map((row, i) => (
-                  <tr key={row.institutionId} className="group hover:bg-tab-rank/5 transition-colors border-b border-border last:border-b-0">
-                    <td className="text-center font-serif text-2xl font-bold text-muted-foreground group-hover:text-tab-rank">{i + 1}</td>
-                    <td className="p-2">
-                      <InstitutionLogo 
-                        institution={row.institution!} 
-                        className="w-12 h-12 border-2 border-border bg-white group-hover:border-tab-rank transition-colors" 
-                        fallbackClassName="text-sm"
-                      />
-                    </td>
-                    <td className="font-bold">
-                      <span className="uppercase text-lg group-hover:text-tab-rank transition-colors">{row.institution!.name}</span>
-                      <div className="font-mono text-xs text-muted-foreground mt-1">Coach: {row.institution!.coach || 'N/A'}</div>
-                    </td>
-                    <td className="text-center font-mono text-xl text-amber-600 bg-amber-500/5">{row.gold}</td>
-                    <td className="text-center font-mono font-black text-2xl bg-tab-rank/10 text-tab-rank">{row.points}</td>
-                  </tr>
+        <div className="container-wide relative mt-14 md:mt-20">
+          <div className="relative mx-auto aspect-[4/5] max-h-[620px] w-full overflow-hidden rounded-t-[24px] sm:aspect-[16/9] md:aspect-[21/9] md:rounded-t-[32px]">
+            <motion.img
+              src={heroImage}
+              alt="Robots de sumo enfrentándose en el dohyo"
+              className="h-full w-full object-cover"
+              style={{ scale: imageScale, y: imageY }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40" />
+            <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
+              {phase === "before" ? (
+                <>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/60">Faltan para el torneo</p>
+              <div className="mt-3 flex items-end gap-5 text-white md:gap-9" role="timer" aria-live="off">
+                {[
+                  { v: time.days, l: "días", pad: 3 },
+                  { v: time.hours, l: "horas" },
+                  { v: time.minutes, l: "min" },
+                  { v: time.seconds, l: "seg" },
+                ].map(unit => (
+                  <div key={unit.l} className="flex flex-col">
+                    <span className="text-[36px] font-semibold leading-none tracking-[-0.04em] md:text-[64px]">
+                      <RollingNumber value={unit.v} pad={unit.pad} />
+                    </span>
+                    <span className="mt-2 text-[12px] font-medium text-white/60 md:text-[13px]">{unit.l}</span>
+                  </div>
                 ))}
-                {topInstitutions.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="text-center p-12 font-mono text-muted-foreground bg-muted/10">Sin puntos registrados en esta edición.</td>
-                  </tr>
+              </div>
+                </>
+              ) : (
+                <p className="text-[36px] font-semibold leading-none tracking-[-0.04em] text-white md:text-[64px]">
+                  {phase === "today" ? "Hoy es el torneo." : "Gracias por participar."}
+                </p>
+              )}
+              <p className="mt-4 text-[14px] text-white/70">{eventDate}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="section">
+        <div className="container-apple">
+          <Reveal>
+            <h2 className="headline-lg max-w-2xl">El torneo en cifras.</h2>
+          </Reveal>
+          <div className="mt-12 grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
+            {stats.map((stat, i) => (
+              <Reveal key={stat.label} delay={i * 0.08}>
+                <div className="border-t border-border pt-5">
+                  <div className="text-[48px] font-semibold leading-none tracking-[-0.045em] md:text-[64px]">{stat.value}</div>
+                  <p className="mt-2 text-[15px] text-muted-foreground">{stat.label}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Categories carousel */}
+      <section className="section section-muted overflow-hidden">
+        <div className="container-apple flex items-end justify-between gap-6">
+          <Reveal>
+            <h2 className="headline-lg">Conoce las categorías.</h2>
+          </Reveal>
+          <Link href="/categorias" className="link-chevron hidden shrink-0 text-[17px] sm:inline-flex">
+            Ver todas <ChevronRight size={17} />
+          </Link>
+        </div>
+
+        <Reveal y={40}>
+          <div ref={scrollerRef} className="scroller mt-10">
+            {categories.map(cat => (
+              <Link
+                key={cat.id}
+                href={`/categorias/${cat.slug}`}
+                className="tile tile-interactive tile-media relative block h-[460px] w-[min(78vw,340px)] bg-black text-white"
+              >
+                {categoryImages[cat.slug] && (
+                  <img src={categoryImages[cat.slug]} alt="" loading="lazy" className="absolute inset-0" />
                 )}
-              </tbody>
-            </table>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/10 to-black/60" />
+                <div className="relative flex h-full flex-col justify-between p-7">
+                  <div>
+                    <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-white/70">{kindOf(cat) ?? "Categoría"}</span>
+                    <h3 className="mt-2 text-[28px] font-semibold leading-[1.1] tracking-[-0.03em]">{cat.name}</h3>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] text-white/80">{modalityOf(cat)}</span>
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-white/20 backdrop-blur-md">
+                      <ChevronRight size={18} />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
-          <div className="sm:hidden mt-4">
-             <Link href="/ranking" className="soft-button w-full">Ver ranking completo <ArrowRight size={14} /></Link>
-          </div>
-        </div>
+        </Reveal>
 
-        <div className="space-y-6">
-          <div className="flex justify-between items-end border-b-4 border-tab-cat pb-4">
-            <div>
-              <h2 className="text-3xl md:text-5xl font-serif font-black uppercase flex items-center gap-3 text-tab-cat">
-                Próximos Encuentros <Layers className="h-8 w-8 text-tab-cat" />
-              </h2>
-              <p className="font-mono text-muted-foreground mt-2 text-lg">Programación oficial</p>
+        <div className="container-apple flex justify-end gap-3">
+          <button onClick={() => scrollBy(-1)} aria-label="Categorías anteriores" className="grid h-9 w-9 place-items-center rounded-full bg-black/[.08] text-foreground/70 transition-colors hover:bg-black/[.14]">
+            <ChevronLeft size={18} />
+          </button>
+          <button onClick={() => scrollBy(1)} aria-label="Más categorías" className="grid h-9 w-9 place-items-center rounded-full bg-black/[.08] text-foreground/70 transition-colors hover:bg-black/[.14]">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </section>
+
+      {/* Leaders */}
+      <section className="section">
+        <div className="container-apple">
+          <div className="flex items-end justify-between gap-6">
+            <Reveal>
+              <span className="eyebrow mb-3">Clasificación</span>
+              <h2 className="headline-lg">Quién lidera.</h2>
+            </Reveal>
+            <Link href="/ranking" className="link-chevron hidden shrink-0 text-[17px] sm:inline-flex">
+              Ranking completo <ChevronRight size={17} />
+            </Link>
+          </div>
+
+          {leaders.length === 0 ? (
+            <p className="mt-10 text-muted-foreground">Aún no hay puntos registrados en esta edición.</p>
+          ) : (
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {leaders.map((row, i) => (
+                <Reveal key={row.institutionId} delay={i * 0.1}>
+                  <div className={`tile tile-muted flex h-full flex-col p-8 ${i === 0 ? "md:-translate-y-0" : ""}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[56px] font-semibold leading-none tracking-[-0.05em] text-foreground/15">{i + 1}</span>
+                      <Trophy size={22} className={i === 0 ? "text-gold" : i === 1 ? "text-silver" : "text-bronze"} />
+                    </div>
+                    <InstitutionLogo institution={row.institution} className="mt-8 h-14 w-14 rounded-2xl bg-card text-[15px]" />
+                    <h3 className="mt-5 text-[21px] font-semibold leading-tight tracking-[-0.02em]">{row.institution.name}</h3>
+                    <p className="mt-1 text-[14px] text-muted-foreground">Coach: {row.institution.coach || "Sin asignar"}</p>
+                    <div className="mt-auto flex items-baseline gap-2 pt-8">
+                      <span className="text-[40px] font-semibold leading-none tracking-[-0.04em]">{row.points}</span>
+                      <span className="text-[14px] text-muted-foreground">puntos</span>
+                    </div>
+                    <div className="mt-4 flex gap-4 text-[13px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-gold" />{row.gold} oro</span>
+                      <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-silver" />{row.silver} plata</span>
+                      <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-bronze" />{row.bronze} bronce</span>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
             </div>
-            <Link href="/categorias" className="soft-button hidden sm:inline-flex">Ver todas las categorías <ArrowRight size={14} /></Link>
-          </div>
+          )}
+          <Link href="/ranking" className="link-chevron mt-8 text-[17px] sm:hidden">
+            Ranking completo <ChevronRight size={17} />
+          </Link>
+        </div>
+      </section>
 
-          <div className="bg-card border-2 border-border shadow-[8px_8px_0px_0px_var(--color-tab-cat)] overflow-x-auto transition-shadow">
-            <table className="table-layout w-full min-w-[600px]">
-              <thead>
-                <tr className="bg-tab-cat/10">
-                  <th className="w-[22%] text-tab-cat border-tab-cat/20">CATEGORÍA</th>
-                  <th className="w-[14%] text-tab-cat border-tab-cat/20">MODALIDAD</th>
-                  <th className="w-[49%] text-tab-cat border-tab-cat/20">REGLAS BÁSICAS</th>
-                  <th className="w-[15%] text-right text-tab-cat border-tab-cat/20">HORA INICIO</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.slice(0, 5).map(cat => (
-                  <tr key={cat.id} className="group hover:bg-tab-cat/5 transition-colors border-b border-border last:border-b-0">
-                    <td className="font-bold">
-                      <Link href={`/categorias/${cat.slug}`} className="hover:text-tab-cat hover:underline uppercase text-lg group-hover:text-tab-cat transition-colors">
-                        {cat.name}
-                      </Link>
-                    </td>
-                    <td className="font-mono uppercase text-xs">
-                      <span className="px-2 py-1 bg-tab-cat/10 text-tab-cat font-bold rounded-none border border-tab-cat/20">{cat.format}</span>
-                    </td>
-                    <td className="text-muted-foreground text-sm whitespace-normal break-words leading-relaxed py-5 pr-8">
-                      {cat.rules}
-                    </td>
-                    <td className="text-right font-mono font-black text-lg text-tab-cat">{cat.startTime}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Day plan */}
+      <section className="section section-muted">
+        <div className="container-apple">
+          <Reveal>
+            <span className="eyebrow mb-3">{EVENT.dateLabel}</span>
+            <h2 className="headline-lg">Así será el día.</h2>
+          </Reveal>
+          <ol className="mt-10 grid gap-3 md:grid-cols-5">
+            {DAY_PLAN.map((step, i) => (
+              <Reveal as="li" key={step} delay={i * 0.06} className="tile flex flex-col p-6">
+                <span className="text-[32px] font-semibold leading-none tracking-[-0.04em] text-primary">{i + 1}</span>
+                <span className="mt-6 text-[16px] font-medium leading-snug tracking-[-0.015em]">{step}</span>
+              </Reveal>
+            ))}
+          </ol>
+          <p className="mt-5 text-[14px] text-muted-foreground">
+            El reglamento no fija horarios por categoría. Los brackets y las categorías en paralelo se anuncian después de la bienvenida.
+          </p>
+
+          <div className="mt-16 grid gap-x-10 gap-y-8 md:grid-cols-2">
+            {ESSENTIALS.map((item, i) => (
+              <Reveal key={item.title} delay={(i % 2) * 0.08} className="border-t border-border pt-5">
+                <h3 className="text-[19px] font-semibold tracking-[-0.02em]">{item.title}</h3>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{item.text}</p>
+              </Reveal>
+            ))}
           </div>
-          <div className="sm:hidden mt-4">
-             <Link href="/categorias" className="soft-button w-full">Ver todas las categorías <ArrowRight size={14} /></Link>
+          <div className="mt-10 flex flex-wrap gap-5">
+            <Link href="/reglamento" className="link-chevron text-[17px]">Reglas generales <ChevronRight size={17} /></Link>
+            <a href={REGULATION_PDF} target="_blank" rel="noreferrer" className="link-chevron text-[17px]"><FileText size={16} className="mr-1" /> Reglamento oficial (PDF)</a>
           </div>
         </div>
+      </section>
 
+      {/* Closing CTA */}
+      <section className="section-dark relative overflow-hidden">
+        <div className="hero-glow opacity-70" />
+        <Reveal className="container-apple relative py-24 text-center md:py-32">
+          <h2 className="headline-xl">Que empiece la competencia.</h2>
+          <p className="lead mx-auto mt-4 max-w-xl">Sigue las llaves en vivo y descubre quién avanza en cada ronda.</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link href="/bracket" className="btn-pill btn-light">Ver llaves</Link>
+            <Link href="/galeria" className="btn-pill btn-ghost-dark">Galería del evento</Link>
+          </div>
+        </Reveal>
       </section>
     </div>
   )
