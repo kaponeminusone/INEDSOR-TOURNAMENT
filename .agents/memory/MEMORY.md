@@ -1,1 +1,2 @@
 - [Horarios y reglamentos del torneo](torneo-datos-pendientes.md) — no publicar horarios ni reglas de categorías nuevas como oficiales sin confirmación.
+- [GitHub y Git en terminal](github-git-auth.md) — la conexión OAuth de GitHub autoriza la API, pero no necesariamente autentica `git push` por HTTPS.
