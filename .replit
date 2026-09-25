@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "python-base-3.13"]
+modules = ["python-base-3.13", "nodejs-22"]
 
 [workflows]
 runButton = "Project"
@@ -12,3 +12,8 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "cloudrun"
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://xwihkeklhddoflcqllzz.supabase.co"
