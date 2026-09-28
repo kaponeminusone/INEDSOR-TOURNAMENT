@@ -446,18 +446,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return tables.participants.map(p => ({ ...p, robots: byOwner.get(p.id) ?? [] }))
   }, [tables.participants, tables.robots])
 
+  // Robots con el mismo nombre en la misma institución se numeran ("Rayo #1", "Rayo #2") para distinguirlos.
+  const robotLabels = useMemo(() => {
+    const groups = new Map<string, Robot[]>()
+    for (const robot of tables.robots) {
+      const school = tables.participants.find(p => p.id === robot.participantId)?.institutionId ?? ""
+      const key = `${school}|${robot.name.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase()}`
+      groups.set(key, [...(groups.get(key) ?? []), robot])
+    }
+    const labels = new Map<string, string>()
+    for (const list of groups.values()) list.forEach((r, i) => labels.set(r.id, list.length > 1 ? `${r.name} #${i + 1}` : r.name))
+    return labels
+  }, [tables.robots, tables.participants])
+
   const describeEntrant = useCallback((key: string): EntrantInfo => {
     const robots = robotsOf(key).map(id => tables.robots.find(r => r.id === id))
     const institutionIds = [...new Set(robots.map(r => tables.participants.find(p => p.id === r?.participantId)?.institutionId).filter((id): id is string => Boolean(id)))]
     const schools = institutionIds.map(id => tables.institutions.find(i => i.id === id)).filter(Boolean)
     return {
       key,
-      name: robots.map(r => r?.name ?? "Robot eliminado").join(" + "),
+      name: robots.map(r => (r ? robotLabels.get(r.id) ?? r.name : "Robot eliminado")).join(" + "),
       school: schools.map(i => i!.name).join(" / ") || "Sin institución",
       schoolInitials: schools.map(i => i!.initials).join(" / ") || "—",
       institutionIds,
     }
-  }, [tables.robots, tables.participants, tables.institutions])
+  }, [tables.robots, tables.participants, tables.institutions, robotLabels])
 
   const rankings = useMemo<RankingRow[]>(() => {
     const rows = new Map<string, RankingRow>()

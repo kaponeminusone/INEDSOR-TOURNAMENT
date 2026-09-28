@@ -5,3 +5,8 @@ supabase/.temp/
 # Credenciales locales: nunca se suben
 CREDENCIALES.local.md
 *.local.md
+
+# Inscripciones reales (datos personales de estudiantes): nunca se suben
+*Respuestas de formulario*.csv
+Inscripci*.csv
+inscripciones-reales/

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react"
 import { useData } from "@/lib/data"
-import { buildImportPlan, parseCsv, CSV_COLUMNS, type ImportPlan } from "@/lib/csv-import"
+import { buildImportPlan, readImportFile, CSV_COLUMNS, type ImportPlan } from "@/lib/csv-import"
 import { Button } from "@/components/ui/button"
 import { ControlHeader } from "@/components/page-header"
 import { UploadCloud, FileSpreadsheet, Info, Download, AlertTriangle } from "lucide-react"
@@ -10,12 +10,13 @@ export default function ControlImportar() {
   const [dragActive, setDragActive] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [plan, setPlan] = useState<ImportPlan | null>(null)
+  const [formatNote, setFormatNote] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
-    setFile(null); setPlan(null); setError(null)
+    setFile(null); setPlan(null); setError(null); setFormatNote("")
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -41,11 +42,13 @@ export default function ControlImportar() {
       setError("Guarda el archivo como CSV: en Excel ve a Archivo → Guardar como → «CSV UTF-8 (delimitado por comas)».")
       return
     }
-    const rows = parseCsv(await selected.text())
-    if (rows.length === 0) { setError("El archivo no tiene filas de datos."); return }
-    const next = buildImportPlan(rows, { institutions, participants, robots, categories })
-    if (next.missingColumns.length) { setError(`Faltan columnas: ${next.missingColumns.join(", ")}.`); return }
-    setPlan(next)
+    const parsed = readImportFile(await selected.text())
+    if (parsed.missingColumns.length) { setError(`Faltan columnas: ${parsed.missingColumns.join(", ")}.`); return }
+    if (parsed.rows.length === 0) { setError("El archivo no tiene filas de datos."); return }
+    setFormatNote(parsed.format === "official"
+      ? `Formulario de inscripción: ${parsed.responses} respuestas, ${parsed.rows.length} participantes.`
+      : `Formato simple: ${parsed.rows.length} filas.`)
+    setPlan(buildImportPlan(parsed.rows, { institutions, participants, robots, categories }))
   }
 
   const processFile = async () => {
@@ -110,10 +113,19 @@ export default function ControlImportar() {
                     ))}
                   </div>
                   <p className="mt-3 text-[13px] text-muted-foreground">
-                    {plan.rows} filas leídas.
+                    {formatNote}
                     {plan.existingParticipants > 0 && ` ${plan.existingParticipants} participantes ya existían y no se duplican.`}
                     {plan.skippedRobots > 0 && ` ${plan.skippedRobots} robots ya estaban registrados y se omiten.`}
+                    {plan.corrections > 0 && ` ${plan.corrections} robots se corrigieron con el envío más reciente.`}
                   </p>
+                  {plan.reviews.length > 0 && (
+                    <details className="mt-3 rounded-xl bg-muted p-3 text-[13px]" onClick={e => e.stopPropagation()}>
+                      <summary className="cursor-pointer font-medium">Casos para revisar ({plan.reviews.length})</summary>
+                      <ul className="mt-2 max-h-56 space-y-1.5 overflow-y-auto text-foreground/80">
+                        {plan.reviews.map((text, i) => <li key={i}>· {text}</li>)}
+                      </ul>
+                    </details>
+                  )}
                   {plan.unknownCategories.length > 0 && (
                     <p className="mt-3 flex gap-2 rounded-xl bg-[hsl(40_90%_48%/0.12)] p-3 text-[13px] text-foreground/80">
                       <AlertTriangle size={16} className="mt-0.5 shrink-0 text-gold" />
@@ -138,8 +150,11 @@ export default function ControlImportar() {
         </div>
 
         <div className="panel flex flex-col p-6">
-          <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Formato</h2>
-          <p className="mt-1 text-[14px] text-muted-foreground">Una fila por robot, con estas columnas (separadas por coma o punto y coma):</p>
+          <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Formatos aceptados</h2>
+          <p className="mt-1 text-[14px] text-muted-foreground">
+            <span className="font-semibold text-foreground">Formulario de inscripción</span> (Google Forms exportado a CSV): se reconoce solo, con hasta 6 participantes por respuesta.
+          </p>
+          <p className="mt-3 text-[14px] text-muted-foreground"><span className="font-semibold text-foreground">Formato simple</span>: una fila por robot, con estas columnas:</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {CSV_COLUMNS.map(col => <span key={col} className="chip font-mono text-[12px]">{col}</span>)}
           </div>
@@ -158,7 +173,7 @@ export default function ControlImportar() {
       <div className="mt-5 flex gap-3 rounded-[18px] bg-primary/[.06] p-5 text-[14px]">
         <Info size={18} className="mt-0.5 shrink-0 text-primary" />
         <p className="text-foreground/80">
-          <span className="font-semibold text-foreground">Sin duplicados.</span> Las instituciones se reconocen por sigla o nombre, y los participantes por correo (o por nombre e institución). Si un estudiante tiene varios robots, repite su fila con cada robot. Puedes importar el mismo archivo otra vez sin duplicar registros.
+          <span className="font-semibold text-foreground">Sin duplicados.</span> Las instituciones se reconocen por nombre («IE» e «Institución Educativa» cuentan igual) y los estudiantes por su nombre dentro de su institución. Si un estudiante aparece en varios envíos con otro nombre de robot en las mismas categorías, vale el envío más reciente. Al volver a subir el archivo solo se agregan instituciones, estudiantes y robots nuevos; lo que ya existe no se modifica y los cambios detectados aparecen en «Casos para revisar». Dos robots de estudiantes distintos pueden llamarse igual.
         </p>
       </div>
     </div>
