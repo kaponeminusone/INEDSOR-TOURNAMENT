@@ -189,6 +189,11 @@ create table if not exists public.live_streams (
   updated_at timestamptz not null default now()
 );
 
+-- Además de YouTube, admite enlaces de TikTok LIVE (se muestran como miniatura y redirigen; no se embeben).
+alter table public.live_streams add column if not exists provider text not null default 'youtube';
+alter table public.live_streams drop constraint if exists live_streams_provider_check;
+alter table public.live_streams add constraint live_streams_provider_check check (provider in ('youtube', 'tiktok'));
+
 -- ─────────────────────────────────────────────
 -- Modo edición: los resultados guardados quedan bloqueados; cambiarlos exige el código de edición.
 -- ─────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { supabase, supabaseConfigured, MEDIA_BUCKET, ORGANIZER_EMAIL, publicMediaUrl } from "@/lib/supabase"
 import { resizeImage } from "@/lib/image"
 import { extractYoutubeId } from "@/lib/youtube"
+import { detectStreamProvider, type StreamProvider } from "@/lib/live-links"
 import { robotsOf, type Competition, type CompetitionKind, type CompetitionMatch, type Entrant, type Places, type Run, type CompetitionSettings } from "@/lib/competition"
 
 export type Institution = { id: string; name: string; coach: string; initials: string; logo?: string }
@@ -13,7 +14,8 @@ export type Category = { id: string; name: string; slug: string; format: Competi
 export type RankingRow = { institutionId: string; gold: number; silver: number; bronze: number }
 export type CategoryResult = { categoryId: string; places: Places; recordedAt: string }
 export type EntrantInfo = { key: string; name: string; school: string; schoolInitials: string; institutionIds: string[] }
-export type LiveStream = { id: string; categoryId: string; label: string; youtubeUrl: string; videoId: string | null; isLive: boolean; updatedAt: string }
+export type LiveStream = { id: string; categoryId: string; label: string; url: string; provider: StreamProvider; videoId: string | null; isLive: boolean; updatedAt: string }
+export type { StreamProvider }
 
 type ParticipantRow = Omit<Participant, "robots">
 
@@ -40,7 +42,7 @@ const mappers: { [K in TableName]: (row: any) => Tables[K][number] } = {
   competitionMatches: r => ({ id: r.id, competitionId: r.competition_id, stage: r.stage, round: r.round, position: r.position, sourceA: r.source_a ?? null, sourceB: r.source_b ?? null, sources: r.sources ?? [], winnerKey: r.winner_key ?? null, placements: r.placements ?? [], status: r.status, locked: r.locked }),
   competitionRuns: r => ({ id: r.id, competitionId: r.competition_id, entrantKey: r.entrant_key, phase: r.phase, attempt: r.attempt, status: r.status, timeMs: r.time_ms ?? null, splits: r.splits ?? [], checkpoints: r.checkpoints ?? 0, locked: r.locked }),
   categoryResults: r => ({ categoryId: r.category_id, places: r.places ?? [], recordedAt: r.recorded_at }),
-  liveStreams: r => ({ id: r.id, categoryId: r.category_id, label: r.label ?? "", youtubeUrl: r.youtube_url ?? "", videoId: r.video_id ?? null, isLive: r.is_live ?? false, updatedAt: r.updated_at }),
+  liveStreams: r => ({ id: r.id, categoryId: r.category_id, label: r.label ?? "", url: r.youtube_url ?? "", provider: r.provider === "tiktok" ? "tiktok" : "youtube", videoId: r.video_id ?? null, isLive: r.is_live ?? false, updatedAt: r.updated_at }),
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -105,7 +107,7 @@ type DataContextType = Omit<Tables, "participants"> & {
   deleteRun: (runId: string) => Promise<boolean>
   finishCompetition: (competition: Competition, places: Places) => Promise<boolean>
   reopenCompetition: (competition: Competition) => Promise<boolean>
-  setLiveStream: (categoryId: string, updates: { label: string; youtubeUrl: string; isLive: boolean }) => Promise<boolean>
+  setLiveStream: (categoryId: string, updates: { label: string; url: string; isLive: boolean }) => Promise<boolean>
   editModeUntil: number | null
   startEditMode: (code: string) => Promise<string | null>
   endEditMode: () => Promise<void>
@@ -425,11 +427,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // ─── Streaming en vivo ───────────────────────────────────────
 
-  const setLiveStream = useCallback((categoryId: string, updates: { label: string; youtubeUrl: string; isLive: boolean }) => {
-    const videoId = extractYoutubeId(updates.youtubeUrl)
+  const setLiveStream = useCallback((categoryId: string, updates: { label: string; url: string; isLive: boolean }) => {
+    const provider = detectStreamProvider(updates.url) ?? "youtube"
+    const videoId = provider === "youtube" ? extractYoutubeId(updates.url) : null
+    const valid = provider === "youtube" ? Boolean(videoId) : Boolean(updates.url.trim())
     return mutate(() => supabase.from("live_streams").upsert({
-      category_id: categoryId, label: updates.label, youtube_url: updates.youtubeUrl, video_id: videoId,
-      is_live: updates.isLive && Boolean(videoId), updated_at: new Date().toISOString(),
+      category_id: categoryId, label: updates.label, youtube_url: updates.url, video_id: videoId, provider,
+      is_live: updates.isLive && valid, updated_at: new Date().toISOString(),
     }, { onConflict: "category_id" }), ["liveStreams"], updates.isLive ? "Transmisión activada." : "Transmisión guardada.")
   }, [mutate])
 
