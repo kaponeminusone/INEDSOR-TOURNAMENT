@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Link } from "wouter"
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
-import { ChevronLeft, ChevronRight, FileText, Trophy } from "lucide-react"
+import { ChevronRight, FileText, Trophy } from "lucide-react"
 import { useData } from "@/lib/data"
 import { categoryImages } from "@/lib/category-images"
 import { buildLeaderboard, kindOf, modalityOf } from "@/lib/tournament"
@@ -9,6 +9,7 @@ import { DAY_PLAN, ESSENTIALS, EVENT, REGULATION_PDF } from "@/lib/regulations"
 import { InstitutionLogo } from "@/components/institution-logo"
 import { Reveal } from "@/components/reveal"
 import heroImage from "@assets/generated_images/inedsor-sumo.jpg"
+import showcaseImage from "@assets/generated_images/inedsor-minisumo.jpg"
 
 function RollingDigit({ digit }: { digit: string }) {
   const num = Number(digit)
@@ -64,17 +65,14 @@ export default function Home() {
   const phase = now < EVENT.date.getTime() ? "before" : now < EVENT_END ? "today" : "after"
   const reduce = useReducedMotion()
   const heroRef = useRef<HTMLElement>(null)
-  const scrollerRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] })
   const imageScale = useTransform(scrollYProgress, [0, 1], [1, reduce ? 1 : 1.12])
   const imageY = useTransform(scrollYProgress, [0, 1], ["0%", reduce ? "0%" : "12%"])
 
   const leaders = buildLeaderboard(rankings, institutions).slice(0, 3)
-
-  const scrollBy = (dir: 1 | -1) => {
-    const el = scrollerRef.current
-    if (el) el.scrollBy({ left: dir * Math.min(el.clientWidth * 0.8, 700), behavior: "smooth" })
-  }
+  // Se duplica la lista para que el carrusel automático haga un bucle continuo sin salto.
+  const marqueeCategories = useMemo(() => categories.length ? [...categories, ...categories] : [], [categories])
+  const marqueeDuration = Math.max(18, categories.length * 4)
 
   const stats = [
     { value: categories.length, label: "categorías de competencia" },
@@ -143,6 +141,31 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Showcase */}
+      <section className="section-showcase relative overflow-hidden">
+        <div className="container-apple relative pt-16 text-center md:pt-24">
+          <Reveal>
+            <span className="eyebrow mb-4">Así se vive el torneo</span>
+            <h2 className="headline-lg text-white">Donde el ingenio se pone a prueba.</h2>
+            <p className="mx-auto mt-4 max-w-lg text-[17px] leading-relaxed text-white/65">
+              Cada categoría es un reto distinto: velocidad, estrategia, precisión y nervios de acero frente al público.
+            </p>
+          </Reveal>
+        </div>
+        <Reveal y={40} className="relative mt-14 md:mt-20">
+          <div className="mx-auto max-w-3xl px-6 pb-16 md:px-10 md:pb-24">
+            <div className="overflow-hidden rounded-[28px] shadow-[0_40px_120px_-30px_rgba(0,0,0,.55)]">
+              <img
+                src={showcaseImage}
+                alt="Dos robots de minisumo frente a frente en el dojo, listos para el combate"
+                loading="lazy"
+                className="aspect-[4/3] w-full object-cover md:aspect-[16/10]"
+              />
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
       {/* Stats */}
       <section className="section">
         <div className="container-apple">
@@ -174,42 +197,39 @@ export default function Home() {
         </div>
 
         <Reveal y={40}>
-          <div ref={scrollerRef} className="scroller mt-10">
-            {categories.map(cat => (
-              <Link
-                key={cat.id}
-                href={`/categorias/${cat.slug}`}
-                className="tile tile-interactive tile-media relative block h-[460px] w-[min(78vw,340px)] bg-black text-white"
-              >
-                {categoryImages[cat.slug] && (
-                  <img src={categoryImages[cat.slug]} alt="" loading="lazy" className="absolute inset-0" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/10 to-black/60" />
-                <div className="relative flex h-full flex-col justify-between p-7">
-                  <div>
-                    <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-white/70">{kindOf(cat) ?? "Categoría"}</span>
-                    <h3 className="mt-2 text-[28px] font-semibold leading-[1.1] tracking-[-0.03em]">{cat.name}</h3>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] text-white/80">{modalityOf(cat)}</span>
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-white/20 backdrop-blur-md">
-                      <ChevronRight size={18} />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="container-apple mt-10">
+            <div className="marquee-viewport">
+              <div className="marquee-track" style={{ "--marquee-duration": `${marqueeDuration}s` } as CSSProperties}>
+                {marqueeCategories.map((cat, i) => (
+                  <Link
+                    key={`${cat.id}-${i}`}
+                    href={`/categorias/${cat.slug}`}
+                    aria-hidden={i >= categories.length}
+                    tabIndex={i >= categories.length ? -1 : undefined}
+                    className="tile tile-interactive tile-media relative block h-[460px] w-[min(78vw,340px)] shrink-0 bg-black text-white"
+                  >
+                    {categoryImages[cat.slug] && (
+                      <img src={categoryImages[cat.slug]} alt="" loading="lazy" className="absolute inset-0" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/10 to-black/60" />
+                    <div className="relative flex h-full flex-col justify-between p-7">
+                      <div>
+                        <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-white/70">{kindOf(cat) ?? "Categoría"}</span>
+                        <h3 className="mt-2 text-[28px] font-semibold leading-[1.1] tracking-[-0.03em]">{cat.name}</h3>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[14px] text-white/80">{modalityOf(cat)}</span>
+                        <span className="grid h-9 w-9 place-items-center rounded-full bg-white/20 backdrop-blur-md">
+                          <ChevronRight size={18} />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         </Reveal>
-
-        <div className="container-apple flex justify-end gap-3">
-          <button onClick={() => scrollBy(-1)} aria-label="Categorías anteriores" className="grid h-9 w-9 place-items-center rounded-full bg-black/[.08] text-foreground/70 transition-colors hover:bg-black/[.14]">
-            <ChevronLeft size={18} />
-          </button>
-          <button onClick={() => scrollBy(1)} aria-label="Más categorías" className="grid h-9 w-9 place-items-center rounded-full bg-black/[.08] text-foreground/70 transition-colors hover:bg-black/[.14]">
-            <ChevronRight size={18} />
-          </button>
-        </div>
       </section>
 
       {/* Leaders */}

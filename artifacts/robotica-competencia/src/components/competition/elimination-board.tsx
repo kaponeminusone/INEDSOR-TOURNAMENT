@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion"
 import { Check, Megaphone, RotateCcw } from "lucide-react"
 import type { EntrantInfo } from "@/lib/data"
 import { resolveMatches, roundLabel, type CompetitionMatch, type MatchState, type ResolvedMatch, type Side, type Stage } from "@/lib/competition"
+import { BracketCanvas } from "@/components/competition/bracket-canvas"
 
 type Props = {
   matches: CompetitionMatch[]
@@ -66,12 +67,13 @@ export function EliminationBoard({ matches, describe, editable, editMode, animat
   let order = 0
 
   return (
-    <div className="space-y-10">
+    <BracketCanvas>
+      <div className="space-y-10">
       {sections.map((section, si) => (
         <section key={si}>
           {section.title && <h3 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{section.title}</h3>}
-          <div className="overflow-x-auto pb-3 [scrollbar-width:thin]">
-            <div className="flex min-w-max gap-6">
+          <div className="pb-1">
+            <div className="flex gap-6">
               {section.columns.map(col => {
                 const status = columnStatus(col.list)
                 return (
@@ -150,7 +152,8 @@ export function EliminationBoard({ matches, describe, editable, editMode, animat
           </div>
         </section>
       ))}
-    </div>
+      </div>
+    </BracketCanvas>
   )
 }
 

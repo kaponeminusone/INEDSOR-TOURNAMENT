@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion"
 import { Flag, Megaphone, RotateCcw } from "lucide-react"
 import type { EntrantInfo } from "@/lib/data"
 import { resolveMatches, type CompetitionMatch, type CompetitionSettings, type ResolvedMatch } from "@/lib/competition"
+import { BracketCanvas } from "@/components/competition/bracket-canvas"
 
 type Props = {
   matches: CompetitionMatch[]
@@ -23,8 +24,8 @@ export function HeatsBoard({ matches, settings, describe, editable, editMode, an
   let order = 0
 
   return (
-    <div className="overflow-x-auto pb-3">
-      <div className="flex min-w-max gap-6">
+    <BracketCanvas>
+      <div className="flex gap-6">
         {rounds.map(round => {
           const heats = matches.filter(m => m.round === round).sort((a, b) => a.position - b.position).map(m => resolved.get(m.id)!)
           const finished = heats.every(h => h.state === "done")
@@ -58,7 +59,7 @@ export function HeatsBoard({ matches, settings, describe, editable, editMode, an
           )
         })}
       </div>
-    </div>
+    </BracketCanvas>
   )
 }
 
