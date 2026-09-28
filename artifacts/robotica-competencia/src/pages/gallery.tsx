@@ -14,26 +14,61 @@ import drone from "@assets/generated_images/inedsor-pista-dron.jpg";
 import balloons from "@assets/generated_images/inedsor-explotaglobos.jpg";
 import maze from "@assets/generated_images/inedsor-laberinto.jpg";
 
-type Post = { id: string; caption: string; createdAt: string; imageUrl: string; storagePath?: string; likeCount: number; sample: boolean };
-type PhotoRow = { id: string; caption: string; storage_path: string; created_at: string; like_count: number };
+type Post = { id: string; caption: string; createdAt: string; imageUrl: string; imageUrls: string[]; storagePath?: string; storagePaths: string[]; likeCount: number; sample: boolean };
+type PhotoRow = { id: string; caption: string; storage_path: string; storage_paths: string[] | null; created_at: string; like_count: number };
 
 const PAGE_SIZE = 12;
-const PHOTO_COLUMNS = "id,caption,storage_path,created_at,like_count";
+const PHOTO_COLUMNS = "id,caption,storage_path,storage_paths,created_at,like_count";
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
 
 const SAMPLE_POSTS: Post[] = [
-  { id: "sample-1", imageUrl: minisumo, createdAt: hoursAgo(0.4), likeCount: 0, sample: true, caption: "Así se verá una publicación del torneo: la foto del momento y una breve descripción de lo que está pasando en la pista." },
-  { id: "sample-2", imageUrl: lineFollower, createdAt: hoursAgo(2), likeCount: 0, sample: true, caption: "Las publicaciones aparecen en orden, de la más reciente a la más antigua." },
-  { id: "sample-3", imageUrl: drone, createdAt: hoursAgo(5), likeCount: 0, sample: true, caption: "Toca dos veces la imagen para darle me gusta." },
-  { id: "sample-4", imageUrl: soccer, createdAt: hoursAgo(26), likeCount: 0, sample: true, caption: "El modo presentación muestra todas las fotos en pantalla completa, ideal para proyectar durante el evento." },
-  { id: "sample-5", imageUrl: balloons, createdAt: hoursAgo(50), likeCount: 0, sample: true, caption: "" },
-  { id: "sample-6", imageUrl: maze, createdAt: hoursAgo(75), likeCount: 0, sample: true, caption: "Cuando la organización publique las primeras fotos, estos ejemplos desaparecerán." },
-];
+  { id: "sample-1", imageUrl: minisumo, imageUrls: [minisumo], createdAt: hoursAgo(0.4), likeCount: 0, sample: true, caption: "Así se verá una publicación del torneo: la foto del momento y una breve descripción de lo que está pasando en la pista. #Minisumo" },
+  { id: "sample-2", imageUrl: lineFollower, imageUrls: [lineFollower], createdAt: hoursAgo(2), likeCount: 0, sample: true, caption: "Las publicaciones aparecen en orden, de la más reciente a la más antigua. #SeguidorDeLinea" },
+  { id: "sample-3", imageUrl: drone, imageUrls: [drone], createdAt: hoursAgo(5), likeCount: 0, sample: true, caption: "Toca dos veces la imagen para darle me gusta. #Dron" },
+  { id: "sample-4", imageUrl: soccer, imageUrls: [soccer, minisumo], createdAt: hoursAgo(26), likeCount: 0, sample: true, caption: "Si una publicación tiene varias fotos, se deslizan hacia los lados como aquí. #Futbolito" },
+  { id: "sample-5", imageUrl: balloons, imageUrls: [balloons], createdAt: hoursAgo(50), likeCount: 0, sample: true, caption: "" },
+  { id: "sample-6", imageUrl: maze, imageUrls: [maze], createdAt: hoursAgo(75), likeCount: 0, sample: true, caption: "Cuando la organización publique las primeras fotos, estos ejemplos desaparecerán. #Robotica" },
+].map(p => ({ ...p, storagePaths: [] as string[] }));
 
-const toPost = (row: PhotoRow): Post => ({
-  id: row.id, caption: row.caption ?? "", createdAt: row.created_at, storagePath: row.storage_path,
-  imageUrl: publicMediaUrl(row.storage_path), likeCount: row.like_count ?? 0, sample: false,
-});
+const toPost = (row: PhotoRow): Post => {
+  const paths = row.storage_paths?.length ? row.storage_paths : [row.storage_path];
+  return {
+    id: row.id, caption: row.caption ?? "", createdAt: row.created_at, storagePath: row.storage_path, storagePaths: paths,
+    imageUrl: publicMediaUrl(row.storage_path), imageUrls: paths.map(publicMediaUrl), likeCount: row.like_count ?? 0, sample: false,
+  };
+};
+
+// ─── Tags (#etiqueta) ───────────────────────────────────────────
+const TAG_RE = /#[\p{L}\d_]+/gu;
+
+function splitCaption(caption: string): { text: string; tag: boolean }[] {
+  const parts: { text: string; tag: boolean }[] = [];
+  let last = 0;
+  for (const match of caption.matchAll(TAG_RE)) {
+    const index = match.index ?? 0;
+    if (index > last) parts.push({ text: caption.slice(last, index), tag: false });
+    parts.push({ text: match[0], tag: true });
+    last = index + match[0].length;
+  }
+  if (last < caption.length) parts.push({ text: caption.slice(last), tag: false });
+  return parts;
+}
+
+function extractTags(caption: string): string[] {
+  return [...caption.matchAll(TAG_RE)].map(m => m[0]);
+}
+
+function topTags(posts: Post[], limit: number): { tag: string; count: number }[] {
+  const counts = new Map<string, { tag: string; count: number }>();
+  for (const post of posts) {
+    for (const raw of extractTags(post.caption)) {
+      const key = raw.toLowerCase();
+      const entry = counts.get(key);
+      if (entry) entry.count += 1; else counts.set(key, { tag: raw, count: 1 });
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, limit);
+}
 
 function shuffled(ids: string[], last?: string): string[] {
   const result = [...ids];
@@ -118,15 +153,60 @@ type FeedPostProps = {
   onShare: () => void;
   onPresent: () => void;
   onDelete?: () => void;
+  onTag: (tag: string) => void;
   deleting: boolean;
 };
 
-function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, deleting }: FeedPostProps) {
+function CaptionText({ caption, onTag }: { caption: string; onTag: (tag: string) => void }) {
+  return (
+    <>
+      {splitCaption(caption).map((part, i) => part.tag ? (
+        <button key={i} type="button" onClick={() => onTag(part.text)} className="font-medium text-primary hover:underline">{part.text}</button>
+      ) : (
+        <span key={i}>{part.text}</span>
+      ))}
+    </>
+  );
+}
+
+function PhotoCarousel({ images, alt }: { images: string[]; alt: string }) {
+  const [active, setActive] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const onScroll = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    setActive(Math.round(el.scrollLeft / el.clientWidth));
+  };
+  return (
+    <div className="relative">
+      <div
+        ref={trackRef}
+        onScroll={onScroll}
+        className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {images.map((src, i) => (
+          <img key={i} src={src} alt={i === 0 ? alt : ""} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} className="max-h-[640px] w-full shrink-0 snap-center object-cover" />
+        ))}
+      </div>
+      {images.length > 1 && (
+        <>
+          <span className="absolute right-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">{active + 1}/{images.length}</span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-2.5 flex justify-center gap-1.5">
+            {images.map((_, i) => <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${i === active ? "bg-white" : "bg-white/40"}`} />)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, onTag, deleting }: FeedPostProps) {
   const reduce = useReducedMotion();
   const [burst, setBurst] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const caption = post.caption.trim();
   const long = caption.length > 110;
+  const multi = post.imageUrls.length > 1;
 
   const doubleTap = () => {
     if (!liked) onLike(true);
@@ -151,7 +231,11 @@ function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, de
       </header>
 
       <div className="relative select-none overflow-hidden bg-muted sm:rounded-[10px] sm:border sm:border-border" onDoubleClick={doubleTap}>
-        <img src={post.imageUrl} alt={photoAlt(post)} loading={index < 2 ? "eager" : "lazy"} decoding="async" draggable={false} className="max-h-[640px] w-full object-cover" />
+        {multi ? (
+          <PhotoCarousel images={post.imageUrls} alt={photoAlt(post)} />
+        ) : (
+          <img src={post.imageUrl} alt={photoAlt(post)} loading={index < 2 ? "eager" : "lazy"} decoding="async" draggable={false} className="max-h-[640px] w-full object-cover" />
+        )}
         <AnimatePresence>
           {burst > 0 && (
             <motion.span
@@ -183,7 +267,12 @@ function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, de
       {caption && (
         <p className="px-4 pt-1 text-[14px] leading-[1.45] sm:px-0">
           <span className="mr-1.5 font-semibold">Torneo INEDSOR</span>
-          {long && !expanded ? <>{caption.slice(0, 110).trimEnd()}… <button type="button" onClick={() => setExpanded(true)} className="text-muted-foreground">más</button></> : caption}
+          {long && !expanded
+            ? <>
+                <CaptionText caption={caption.slice(0, 110).trimEnd()} onTag={onTag} />
+                … <button type="button" onClick={() => setExpanded(true)} className="text-muted-foreground">más</button>
+              </>
+            : <CaptionText caption={caption} onTag={onTag} />}
         </p>
       )}
     </Reveal>
@@ -199,8 +288,9 @@ export default function Gallery() {
   const [hasMore, setHasMore] = useState(false);
   const [feedError, setFeedError] = useState("");
   const [caption, setCaption] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [presentationPosts, setPresentationPosts] = useState<Post[]>([]);
@@ -214,7 +304,9 @@ export default function Gallery() {
   const device = useMemo(deviceId, []);
 
   const showingSamples = !loading && !feedError && photos.length === 0;
-  const feed = showingSamples ? SAMPLE_POSTS : photos;
+  const allFeed = showingSamples ? SAMPLE_POSTS : photos;
+  const trending = useMemo(() => topTags(allFeed, 8), [allFeed]);
+  const feed = activeTag ? allFeed.filter(post => extractTags(post.caption).some(t => t.toLowerCase() === activeTag.toLowerCase())) : allFeed;
   const presentationRef = useRef(presentationPosts);
   presentationRef.current = presentationPosts;
 
@@ -277,11 +369,11 @@ export default function Gallery() {
   }, []);
 
   useEffect(() => {
-    if (!file) { setPreview(""); return; }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    if (!files.length) { setPreviews([]); return; }
+    const urls = files.map(f => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach(URL.revokeObjectURL);
+  }, [files]);
 
   const applyLikeCount = (id: string, delta: number, exact?: number) => {
     const patch = (p: Post) => p.id === id ? { ...p, likeCount: exact ?? Math.max(0, p.likeCount + delta) } : p;
@@ -304,35 +396,49 @@ export default function Gallery() {
     if (typeof data === "number") applyLikeCount(post.id, 0, data);
   };
 
+  const MAX_PHOTOS = 10;
+  const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
   const chooseFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files?.[0] ?? null;
-    if (selected && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(selected.type)) {
-      setFile(null); toast.error("Selecciona una imagen JPG, PNG, WebP o GIF."); return;
-    }
-    if (selected && selected.size > 15 * 1024 * 1024) {
-      setFile(null); toast.error("La imagen supera el máximo de 15 MB."); return;
-    }
-    setFile(selected);
+    const selected = [...(event.target.files ?? [])];
+    if (!selected.length) return;
+    const invalidType = selected.find(f => !ACCEPTED_TYPES.includes(f.type));
+    if (invalidType) { toast.error("Selecciona solo imágenes JPG, PNG, WebP o GIF."); return; }
+    const tooLarge = selected.find(f => f.size > 15 * 1024 * 1024);
+    if (tooLarge) { toast.error("Cada imagen debe pesar menos de 15 MB."); return; }
+    setFiles(current => {
+      const next = [...current, ...selected].slice(0, MAX_PHOTOS);
+      if (current.length + selected.length > MAX_PHOTOS) toast.error(`Máximo ${MAX_PHOTOS} fotos por publicación.`);
+      return next;
+    });
   };
 
+  const removeFileAt = (index: number) => setFiles(current => current.filter((_, i) => i !== index));
+
   const clearComposer = () => {
-    setFile(null); setCaption("");
+    setFiles([]); setCaption("");
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const upload = async (event: FormEvent) => {
     event.preventDefault();
-    if (!file) return;
+    if (!files.length) return;
     setBusy("upload");
     const id = crypto.randomUUID();
-    const path = `gallery/${id}.jpg`;
+    const paths: string[] = [];
     try {
-      const blob = await resizeImage(file, 1920, "image/jpeg", 0.82);
-      const { error: uploadError } = await supabase.storage.from(MEDIA_BUCKET).upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
-      if (uploadError) throw uploadError;
-      const { data, error } = await supabase.from("gallery_photos").insert({ id, caption: caption.trim(), storage_path: path }).select(PHOTO_COLUMNS).single();
+      for (let i = 0; i < files.length; i++) {
+        const path = `gallery/${id}-${i}.jpg`;
+        const blob = await resizeImage(files[i], 1920, "image/jpeg", 0.82);
+        const { error: uploadError } = await supabase.storage.from(MEDIA_BUCKET).upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
+        if (uploadError) throw uploadError;
+        paths.push(path);
+      }
+      const { data, error } = await supabase.from("gallery_photos")
+        .insert({ id, caption: caption.trim(), storage_path: paths[0], storage_paths: paths })
+        .select(PHOTO_COLUMNS).single();
       if (error) {
-        await supabase.storage.from(MEDIA_BUCKET).remove([path]);
+        await supabase.storage.from(MEDIA_BUCKET).remove(paths);
         throw error;
       }
       const post = toPost(data as PhotoRow);
@@ -341,6 +447,7 @@ export default function Gallery() {
       clearComposer();
       toast.success("Publicado.");
     } catch (error) {
+      if (paths.length) await supabase.storage.from(MEDIA_BUCKET).remove(paths);
       toast.error(error instanceof Error ? error.message : "No se pudo publicar la fotografía.");
     } finally { setBusy(null); }
   };
@@ -350,14 +457,25 @@ export default function Gallery() {
     setBusy(post.id);
     const { error } = await supabase.from("gallery_photos").delete().eq("id", post.id);
     if (error) { toast.error(error.message); setBusy(null); return; }
-    if (post.storagePath) await supabase.storage.from(MEDIA_BUCKET).remove([post.storagePath]);
+    const paths = post.storagePaths.length ? post.storagePaths : post.storagePath ? [post.storagePath] : [];
+    if (paths.length) await supabase.storage.from(MEDIA_BUCKET).remove(paths);
     setPhotos(current => current.filter(p => p.id !== post.id));
     setTotal(t => Math.max(0, t - 1));
     setBusy(null);
   };
 
+  const postUrl = (post: Post) => {
+    const url = new URL(window.location.href);
+    url.search = "";
+    if (!post.sample) url.searchParams.set("foto", post.id);
+    return url.toString();
+  };
+
+  // Nota: WhatsApp arma la vista previa (miniatura) leyendo las etiquetas <meta> del enlace,
+  // no de lo que le pasamos aquí. Como el sitio es una página única (sin render por servidor),
+  // esa miniatura sale genérica (la del sitio), no la foto exacta de la publicación.
   const share = async (post: Post) => {
-    const url = window.location.href;
+    const url = postUrl(post);
     try {
       if (navigator.share) {
         await navigator.share({ title: "Torneo INEDSOR", text: post.caption || "Galería del Torneo INEDSOR", url });
@@ -388,6 +506,24 @@ export default function Gallery() {
     setPresenting(false); setPaused(false);
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
   }, []);
+
+  // Si se llega por un enlace compartido (?foto=id), abre esa publicación directamente.
+  const openedSharedRef = useRef(false);
+  useEffect(() => {
+    if (openedSharedRef.current || loading) return;
+    const id = new URLSearchParams(window.location.search).get("foto");
+    if (!id) return;
+    openedSharedRef.current = true;
+    void (async () => {
+      let target = photos.find(p => p.id === id);
+      if (!target) {
+        const { data } = await supabase.from("gallery_photos").select(PHOTO_COLUMNS).eq("id", id).maybeSingle();
+        if (data) target = toPost(data as PhotoRow);
+      }
+      if (target) void start(target.id);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, photos]);
   const next = useCallback(() => {
     const available = presentationRef.current.map(post => post.id);
     if (!available.length) { stop(); return; }
@@ -450,21 +586,25 @@ export default function Gallery() {
                   rows={caption ? 3 : 1}
                   className="mt-0.5 w-full resize-none bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
                 />
-                {preview && (
-                  <div className="relative mt-2 w-fit">
-                    <img src={preview} alt="Vista previa" className="max-h-72 rounded-xl border border-border object-cover" />
-                    <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} aria-label="Quitar imagen" className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md">
-                      <X size={15} />
-                    </button>
+                {previews.length > 0 && (
+                  <div className="mt-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {previews.map((src, i) => (
+                      <div key={i} className="relative shrink-0">
+                        <img src={src} alt="Vista previa" className="h-24 w-24 rounded-xl border border-border object-cover" />
+                        <button type="button" onClick={() => removeFileAt(i)} aria-label="Quitar imagen" className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md">
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div className="mt-2 flex items-center justify-between">
-                  <label className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Agregar foto">
+                  <label className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Agregar fotos (hasta 10)">
                     <ImagePlus size={20} />
-                    <span className="sr-only">Agregar foto</span>
-                    <input ref={fileRef} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseFile} />
+                    <span className="sr-only">Agregar fotos</span>
+                    <input ref={fileRef} type="file" multiple className="sr-only" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseFile} />
                   </label>
-                  <button className="btn-pill btn-primary btn-sm" type="submit" disabled={busy !== null || !file}>{busy === "upload" ? "Publicando…" : "Publicar"}</button>
+                  <button className="btn-pill btn-primary btn-sm" type="submit" disabled={busy !== null || !files.length}>{busy === "upload" ? "Publicando…" : "Publicar"}</button>
                 </div>
               </div>
             </form>
@@ -484,6 +624,21 @@ export default function Gallery() {
           </div>
         )}
 
+        {trending.length > 0 && (
+          <div className="mx-4 mt-4 flex flex-wrap items-center gap-1.5 sm:mx-0">
+            {activeTag && (
+              <button type="button" onClick={() => setActiveTag(null)} className="chip bg-foreground text-background">
+                {activeTag} <X size={12} />
+              </button>
+            )}
+            {trending.filter(t => t.tag.toLowerCase() !== activeTag?.toLowerCase()).map(t => (
+              <button key={t.tag} type="button" onClick={() => setActiveTag(t.tag)} className="chip text-muted-foreground hover:text-foreground">
+                {t.tag} <span className="tabular text-[11px]">· {t.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <div role="status" aria-label="Cargando publicaciones">
             {[0, 1].map(i => (
@@ -499,6 +654,9 @@ export default function Gallery() {
           </div>
         ) : (
           <div>
+            {activeTag && feed.length === 0 && (
+              <p className="px-4 py-10 text-center text-[13px] text-muted-foreground sm:px-0">Nada con {activeTag} todavía.</p>
+            )}
             {feed.map((post, index) => (
               <FeedPost
                 key={post.id}
@@ -509,6 +667,7 @@ export default function Gallery() {
                 onShare={() => void share(post)}
                 onPresent={() => void start(post.id)}
                 onDelete={!post.sample && isLoggedIn ? () => void remove(post) : undefined}
+                onTag={setActiveTag}
                 deleting={busy !== null}
               />
             ))}
@@ -583,7 +742,7 @@ export default function Gallery() {
                   transition={{ duration: reduceMotion ? 0 : 0.4 }}
                 >
                   {currentPost.caption.trim() ? (
-                    <p className="text-[17px] leading-relaxed text-white/90 lg:text-[19px]">{currentPost.caption.trim()}</p>
+                    <p className="text-[17px] leading-relaxed text-white/90 lg:text-[19px]"><CaptionText caption={currentPost.caption.trim()} onTag={() => {}} /></p>
                   ) : (
                     <p className="text-[15px] text-white/40">Sin descripción.</p>
                   )}

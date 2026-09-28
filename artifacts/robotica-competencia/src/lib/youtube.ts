@@ -20,3 +20,7 @@ export function youtubeEmbedUrl(videoId: string, options: { autoplay?: boolean }
 export function youtubeWatchUrl(videoId: string) {
   return `https://www.youtube.com/watch?v=${videoId}`
 }
+
+export function youtubeThumbnailUrl(videoId: string) {
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+}

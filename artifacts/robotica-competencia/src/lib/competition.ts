@@ -55,6 +55,8 @@ export type CompetitionSettings = {
   checkpoints: string[]
   finalTopTwo: boolean
   places: 1 | 2 | 3
+  // Informativo: con qué categoría se repartió la primera ronda en dos grupos horarios (ver assignOverlapWaves).
+  parallelCategoryId?: string
 }
 
 export type Competition = {
@@ -143,11 +145,11 @@ function pairAvoiding(entrants: Entrant[], schoolOfEntrant: (e: Entrant) => stri
   return shuffle(pairs, random)
 }
 
-// Primera ronda: P/2 encuentros (P = potencia de 2); los byes se reparten de forma pareja en la llave.
-export function drawFirstRound(entrants: Entrant[], schoolOfEntrant: (e: Entrant) => string, avoidSameSchool: boolean, random = Math.random): [Entrant | null, Entrant | null][] {
-  const size = nextPow2(entrants.length)
-  const byes = size - entrants.length
-  const shuffled = shuffle(entrants, random)
+// Reparte un grupo (más una cantidad fija de byes) en encuentros de primera ronda. El grupo + byes debe ser par.
+function layoutRound(group: Entrant[], byes: number, schoolOfEntrant: (e: Entrant) => string, avoidSameSchool: boolean, random: () => number): [Entrant | null, Entrant | null][] {
+  const slots = (group.length + byes) / 2
+  if (slots === 0) return []
+  const shuffled = shuffle(group, random)
   let byeEntrants = shuffled.slice(0, byes)
   let rest = shuffled.slice(byes)
   if (avoidSameSchool) {
@@ -157,6 +159,7 @@ export function drawFirstRound(entrants: Entrant[], schoolOfEntrant: (e: Entrant
     byeEntrants = []
     for (let i = 0; i < byes; i++) {
       const largest = [...groups.values()].sort((a, b) => b.length - a.length)[0]
+      if (!largest?.length) break
       byeEntrants.push(largest.pop()!)
     }
     rest = [...groups.values()].flat()
@@ -165,8 +168,7 @@ export function drawFirstRound(entrants: Entrant[], schoolOfEntrant: (e: Entrant
     ? pairAvoiding(rest, schoolOfEntrant, random)
     : Array.from({ length: rest.length / 2 }, (_, i) => [rest[2 * i], rest[2 * i + 1]] as [Entrant, Entrant])
 
-  const slots = size / 2
-  const byeSlots = new Set(Array.from({ length: byes }, (_, k) => Math.floor(((k + 0.5) * slots) / byes)))
+  const byeSlots = byes > 0 ? new Set(Array.from({ length: byes }, (_, k) => Math.floor(((k + 0.5) * slots) / byes))) : new Set<number>()
   const out: [Entrant | null, Entrant | null][] = []
   let b = 0
   let p = 0
@@ -175,6 +177,84 @@ export function drawFirstRound(entrants: Entrant[], schoolOfEntrant: (e: Entrant
     else out.push(pairs[p++])
   }
   return out
+}
+
+// Primera ronda: P/2 encuentros (P = potencia de 2); los byes se reparten de forma pareja en la llave.
+export function drawFirstRound(entrants: Entrant[], schoolOfEntrant: (e: Entrant) => string, avoidSameSchool: boolean, random = Math.random): [Entrant | null, Entrant | null][] {
+  const size = nextPow2(entrants.length)
+  return layoutRound(entrants, size - entrants.length, schoolOfEntrant, avoidSameSchool, random)
+}
+
+// ─── Categorías en paralelo (mismos carritos en dos categorías simultáneas) ─────────
+// Reparte la primera ronda de dos categorías en dos "grupos horarios" (1 y 2) para que
+// ningún participante que esté en ambas categorías quede convocado en las dos a la vez:
+// si su encuentro en A cae en el grupo 1, su encuentro en B cae en el grupo 2 (y viceversa).
+// Es un reparto "best effort": intenta emparejar y equilibrar, no garantiza una solución
+// perfecta en casos límite (categorías muy desiguales o con casi todos los carritos repetidos).
+
+export type OverlapWave = 1 | 2
+
+export function assignOverlapWaves(entrantsA: Entrant[], entrantsB: Entrant[], random = Math.random): { waveA: Map<string, OverlapWave>; waveB: Map<string, OverlapWave> } {
+  const waveA = new Map<string, OverlapWave>()
+  const waveB = new Map<string, OverlapWave>()
+
+  const robotToEntrantB = new Map<string, string>()
+  for (const e of entrantsB) for (const r of e.robots) robotToEntrantB.set(r, e.key)
+
+  // Enlaces: qué entrantes de B comparten al menos un carrito con cada entrante de A.
+  const linkedB = new Map<string, Set<string>>()
+  for (const e of entrantsA) {
+    for (const r of e.robots) {
+      const bKey = robotToEntrantB.get(r)
+      if (bKey) linkedB.set(e.key, new Set([...(linkedB.get(e.key) ?? []), bKey]))
+    }
+  }
+
+  let a1 = 0, a2 = 0, b1 = 0, b2 = 0
+  for (const aKey of shuffle([...linkedB.keys()], random)) {
+    if (waveA.has(aKey)) continue
+    const wave: OverlapWave = a1 <= a2 ? 1 : 2
+    waveA.set(aKey, wave); wave === 1 ? a1++ : a2++
+    for (const bKey of linkedB.get(aKey)!) {
+      if (waveB.has(bKey)) continue
+      const opposite: OverlapWave = wave === 1 ? 2 : 1
+      waveB.set(bKey, opposite); opposite === 1 ? b1++ : b2++
+    }
+  }
+  // El resto (participantes que solo están en una de las dos categorías) se reparte libremente para equilibrar.
+  for (const e of shuffle(entrantsA, random)) if (!waveA.has(e.key)) { const w: OverlapWave = a1 <= a2 ? 1 : 2; waveA.set(e.key, w); w === 1 ? a1++ : a2++ }
+  for (const e of shuffle(entrantsB, random)) if (!waveB.has(e.key)) { const w: OverlapWave = b1 <= b2 ? 1 : 2; waveB.set(e.key, w); w === 1 ? b1++ : b2++ }
+
+  return { waveA, waveB }
+}
+
+// Arma la primera ronda de una categoría respetando el grupo (1/2) ya asignado a cada entrante,
+// para que ningún encuentro mezcle participantes de grupos distintos. Los grupo 1 quedan primero
+// en las posiciones del encuentro (para llamarlos antes); el tamaño total de la llave no cambia.
+export function layoutRoundInWaves(entrants: Entrant[], waveOf: Map<string, OverlapWave>, schoolOfEntrant: (e: Entrant) => string, avoidSameSchool: boolean, random = Math.random): [Entrant | null, Entrant | null][] {
+  let group1 = entrants.filter(e => waveOf.get(e.key) !== 2)
+  let group2 = entrants.filter(e => waveOf.get(e.key) === 2)
+  const size = nextPow2(entrants.length)
+  const totalByes = size - entrants.length
+
+  const feasibleByes1 = (g1: number, g2: number) => {
+    for (let b = 0; b <= totalByes; b++) if ((g1 + b) % 2 === 0 && (g2 + (totalByes - b)) % 2 === 0) return b
+    return null
+  }
+  let byes1 = feasibleByes1(group1.length, group2.length)
+  if (byes1 === null) {
+    // Caso límite (sin byes de sobra y ambos grupos con cantidad impar): se mueve un participante
+    // de un grupo a otro para poder emparejar; deja de estar perfectamente equilibrado, pero funciona.
+    if (group1.length > group2.length && group1.length > 0) { group2 = [...group2, group1[group1.length - 1]]; group1 = group1.slice(0, -1) }
+    else if (group2.length > 0) { group1 = [...group1, group2[group2.length - 1]]; group2 = group2.slice(0, -1) }
+    byes1 = feasibleByes1(group1.length, group2.length) ?? 0
+  }
+  const byes2 = totalByes - byes1
+
+  return [
+    ...layoutRound(group1, byes1, schoolOfEntrant, avoidSameSchool, random),
+    ...layoutRound(group2, byes2, schoolOfEntrant, avoidSameSchool, random),
+  ]
 }
 
 // ─── Llaves ───────────────────────────────────────────────────────

@@ -72,7 +72,7 @@ export type ImportRobot = { id: string; name: string; categories: string[] }
 type NewParticipantFull = {
   participantName: string; email: string; whatsapp: string; grade: string
   institutionId: string; newInstitutionName?: string
-  robotName: string; categoryId: string
+  robotName: string; categoryIds: string[]
 }
 
 type DataContextType = Omit<Tables, "participants"> & {
@@ -89,6 +89,7 @@ type DataContextType = Omit<Tables, "participants"> & {
   markAttendance: (participantId: string) => Promise<boolean>
   addParticipant: (participant: { name: string; email: string; whatsapp: string; grade: string; institutionId: string }) => Promise<boolean>
   addRobot: (robot: { name: string; categories: string[]; participantId?: string | null }) => Promise<string | null>
+  addRobotCategory: (robotId: string, categoryId: string) => Promise<boolean>
   updateInstitution: (id: string, updates: Partial<Pick<Institution, "name" | "coach" | "initials">>) => Promise<boolean>
   setInstitutionLogo: (id: string, file: File | null) => Promise<boolean>
   addParticipantFull: (payload: NewParticipantFull) => Promise<boolean>
@@ -288,9 +289,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }), ["participants"])
     if (!ok) return false
     return mutate(() => supabase.from("robots").insert({
-      name: payload.robotName, participant_id: participantId, category_ids: payload.categoryId ? [payload.categoryId] : [],
+      name: payload.robotName, participant_id: participantId, category_ids: payload.categoryIds,
     }), ["robots"], "Participante registrado y marcado como presente.")
   }, [mutate])
+
+  const addRobotCategory = useCallback((robotId: string, categoryId: string) => {
+    const robot = tables.robots.find(r => r.id === robotId)
+    if (!robot) return Promise.resolve(false)
+    const category_ids = [...new Set([...robot.categories, categoryId])]
+    return mutate(() => supabase.from("robots").update({ category_ids }).eq("id", robotId), ["robots"], "Categoría añadida.")
+  }, [mutate, tables.robots])
 
   const importData = useCallback(async (institutions: ImportInstitution[], participants: ImportParticipant[], robots: ImportRobot[]) => {
     const ownerOf = new Map(participants.flatMap(p => p.robots.map(r => [r, p.id] as const)))
@@ -480,7 +488,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     session,
     isOrganizer,
     isLoggedIn: Boolean(session) && isOrganizer,
-    login, logout, markAttendance, addParticipant, addRobot,
+    login, logout, markAttendance, addParticipant, addRobot, addRobotCategory,
     updateInstitution, setInstitutionLogo, addParticipantFull, importData, describeEntrant,
     createCompetition, discardCompetition, revealCompetition, setMatchWinner, setMatchActive, setHeatPlacements,
     recordRun, deleteRun, finishCompetition, reopenCompetition, setLiveStream,

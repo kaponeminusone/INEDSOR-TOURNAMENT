@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react"
-import { Clock, Minus, Plus, Shuffle, Users } from "lucide-react"
+import { Clock, Minus, Plus, Shuffle, Users, SplitSquareHorizontal } from "lucide-react"
 import { useData, type Category } from "@/lib/data"
 import {
-  buildEntrants, defaultSettings, drawFirstRound, estimate, formatDuration, generateElimination, generateHeats,
-  type CompetitionSettings,
+  assignOverlapWaves, buildEntrants, defaultSettings, drawFirstRound, estimate, formatDuration, generateElimination, generateHeats,
+  layoutRoundInWaves, type CompetitionSettings,
 } from "@/lib/competition"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ function Stepper({ value, min, max, onChange, suffix }: { value: number; min: nu
 }
 
 export function CompetitionGenerator({ category }: { category: Category }) {
-  const { robots, participants, createCompetition } = useData()
+  const { categories, robots, participants, competitions, createCompetition } = useData()
   const kind = category.format
   const [settings, setSettings] = useState<CompetitionSettings>(() => defaultSettings(kind, category.slug, category.teamSize))
   const [confirming, setConfirming] = useState(false)
@@ -47,10 +47,39 @@ export function CompetitionGenerator({ category }: { category: Category }) {
   const est = useMemo(() => estimate(kind, category.slug, entrantCount, settings), [kind, category.slug, entrantCount, settings])
   const tooFew = entrantCount < (kind === "direct" || kind === "timed" ? 1 : 2)
 
+  // Categorías en paralelo: solo tiene sentido entre llaves de eliminación que aún no se generaron.
+  const parallelOptions = kind === "elimination"
+    ? categories.filter(c => c.id !== category.id && c.format === "elimination" && !competitions.some(comp => comp.categoryId === c.id))
+    : []
+  const [parallelId, setParallelId] = useState("")
+  const parallelCategory = parallelOptions.find(c => c.id === parallelId) ?? null
+
   const generate = async () => {
     setBusy(true)
-    const entrants = buildEntrants(eligible.map(r => r.id), kind === "elimination" ? settings.teamSize : 1, schoolOf)
     const schoolOfEntrant = (e: { robots: string[] }) => schoolOf(e.robots[0])
+    const entrants = buildEntrants(eligible.map(r => r.id), kind === "elimination" ? settings.teamSize : 1, schoolOf)
+
+    if (kind === "elimination" && parallelCategory) {
+      const partnerSettings = defaultSettings(parallelCategory.format, parallelCategory.slug, parallelCategory.teamSize)
+      const partnerInCategory = robots.filter(r => r.categories.includes(parallelCategory.id))
+      const partnerEligible = partnerInCategory.filter(r => !settings.onlyPresent || ownerOf(r.id)?.attendedAt)
+      const partnerEntrants = buildEntrants(partnerEligible.map(r => r.id), partnerSettings.teamSize, schoolOf)
+      const { waveA, waveB } = assignOverlapWaves(entrants, partnerEntrants)
+      const matchesA = generateElimination(layoutRoundInWaves(entrants, waveA, schoolOfEntrant, settings.avoidSameSchool), settings)
+      const matchesB = generateElimination(layoutRoundInWaves(partnerEntrants, waveB, schoolOfEntrant, partnerSettings.avoidSameSchool), partnerSettings)
+      const partnerCount = partnerSettings.teamSize === 2 ? Math.ceil(partnerEligible.length / 2) : partnerEligible.length
+      const partnerEst = estimate(parallelCategory.format, parallelCategory.slug, partnerCount, partnerSettings)
+      const okA = await createCompetition({
+        categoryId: category.id, kind, settings: { ...settings, parallelCategoryId: parallelCategory.id }, entrants, estimateMinutes: est.minutes, matches: matchesA,
+      })
+      const okB = okA && await createCompetition({
+        categoryId: parallelCategory.id, kind: parallelCategory.format, settings: { ...partnerSettings, parallelCategoryId: category.id }, entrants: partnerEntrants, estimateMinutes: partnerEst.minutes, matches: matchesB,
+      })
+      setBusy(false)
+      if (okA && okB) setConfirming(false)
+      return
+    }
+
     const matches = kind === "elimination"
       ? generateElimination(drawFirstRound(entrants, schoolOfEntrant, settings.avoidSameSchool), settings)
       : kind === "heats" ? generateHeats(entrants, schoolOfEntrant, settings) : []
@@ -106,6 +135,18 @@ export function CompetitionGenerator({ category }: { category: Category }) {
             {!settings.doubleElimination && (
               <Row title="Partido por el tercer puesto" hint="Si se desactiva, los dos perdedores de semifinal comparten el 3.er puesto.">
                 <Switch checked={settings.thirdPlace} onCheckedChange={v => set("thirdPlace", v)} />
+              </Row>
+            )}
+            {parallelOptions.length > 0 && (
+              <Row title="Jugar en paralelo con otra categoría" hint="Para categorías con los mismos carritos (ej. Sumo RC y Futbolito): reparte la primera ronda en dos grupos para que nadie deba estar en las dos pistas a la vez.">
+                <Switch checked={Boolean(parallelId)} onCheckedChange={v => setParallelId(v ? parallelOptions[0].id : "")} />
+              </Row>
+            )}
+            {parallelId && (
+              <Row title="Categoría paralela" hint="Se genera junto con esta, usando su configuración recomendada por defecto.">
+                <select className="field-select" value={parallelId} onChange={e => setParallelId(e.target.value)}>
+                  {parallelOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </Row>
             )}
           </>
@@ -168,6 +209,14 @@ export function CompetitionGenerator({ category }: { category: Category }) {
             <DialogTitle>Resumen · {category.name}</DialogTitle>
             <DialogDescription>Revisa antes de generar. Quedará en borrador hasta que lo reveles.</DialogDescription>
           </DialogHeader>
+          {parallelCategory && (
+            <div className="flex items-start gap-2.5 rounded-xl bg-primary/8 px-4 py-3 text-[13px] text-foreground">
+              <SplitSquareHorizontal size={16} className="mt-0.5 shrink-0 text-primary" />
+              <span>
+                También se generará <strong>{parallelCategory.name}</strong> en el mismo paso. La primera ronda de ambas queda repartida en dos grupos: quien esté en las dos categorías nunca cae en el mismo grupo en ambas, así nunca lo llaman a la vez en las dos pistas.
+              </span>
+            </div>
+          )}
           <div className="rounded-2xl bg-muted/70 p-5 text-center">
             <div className="text-[13px] font-medium text-muted-foreground">Duración aproximada</div>
             <div className="mt-1 text-[40px] font-semibold leading-none tracking-[-0.04em]">{formatDuration(est.minutes)}</div>

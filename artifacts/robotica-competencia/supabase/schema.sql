@@ -72,6 +72,11 @@ create table if not exists public.gallery_photos (
 
 alter table public.gallery_photos add column if not exists like_count int not null default 0;
 
+-- Varias fotos por publicación (estilo carrusel). storage_path sigue siendo la portada por compatibilidad.
+alter table public.gallery_photos add column if not exists storage_paths text[] not null default '{}';
+update public.gallery_photos set storage_paths = array[storage_path]
+  where coalesce(array_length(storage_paths, 1), 0) = 0 and storage_path is not null;
+
 -- Un "me gusta" por dispositivo y foto. Solo se modifica mediante set_photo_like().
 create table if not exists public.gallery_likes (
   photo_id uuid not null references public.gallery_photos on delete cascade,
