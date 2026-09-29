@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ControlHeader } from "@/components/page-header"
 import { EditModeToggle } from "@/components/competition/edit-mode-toggle"
-import { Search, CheckCircle2, UserPlus, PlusCircle } from "lucide-react"
+import { Search, CheckCircle2, UserPlus, PlusCircle, X } from "lucide-react"
 
 const emptyForm = {
   participantName: "", email: "", whatsapp: "", grade: "",
@@ -17,7 +17,7 @@ const emptyForm = {
 }
 
 export default function ControlAttendance() {
-  const { participants, institutions, robots, categories, competitions, editModeUntil, markAttendance, addParticipantFull, addRobotCategory } = useData()
+  const { participants, institutions, robots, categories, competitions, editModeUntil, markAttendance, addParticipantFull, addRobotCategory, removeRobotCategory } = useData()
   const [searchTerm, setSearchTerm] = useState("")
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState(emptyForm)
@@ -37,6 +37,7 @@ export default function ControlAttendance() {
   // agregar un robot después no lo mete en encuentros ya creados.
   const lockedCategoryIds = new Set(competitions.map(c => c.categoryId))
   const addableCategories = (robot: Robot) => categories.filter(c => !robot.categories.includes(c.id) && !lockedCategoryIds.has(c.id))
+  const categoryRemovable = (categoryId: string) => !lockedCategoryIds.has(categoryId)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -184,7 +185,20 @@ export default function ControlAttendance() {
                         <li key={r!.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="text-[14px] font-medium">{r!.name}</span>
                           {r!.categories.map(cId => (
-                            <Badge key={cId} variant="secondary" className="text-[11px]">{categories.find(c => c.id === cId)?.name ?? "Categoría eliminada"}</Badge>
+                            <Badge key={cId} variant="secondary" className="text-[11px]">
+                              {categories.find(c => c.id === cId)?.name ?? "Categoría eliminada"}
+                              {Boolean(editModeUntil) && categoryRemovable(cId) && (
+                                <button
+                                  type="button"
+                                  aria-label="Quitar categoría"
+                                  title="Quitar categoría"
+                                  onClick={() => void removeRobotCategory(r!.id, cId)}
+                                  className="-mr-1 grid h-3.5 w-3.5 place-items-center rounded-full text-current opacity-60 hover:opacity-100"
+                                >
+                                  <X size={10} strokeWidth={2.5} />
+                                </button>
+                              )}
+                            </Badge>
                           ))}
                           {r!.categories.length === 0 && <span className="text-[12px] text-destructive">Sin categoría</span>}
                           {Boolean(editModeUntil) && <AddCategoryPopover robot={r!} options={addableCategories(r!)} onAdd={addRobotCategory} />}

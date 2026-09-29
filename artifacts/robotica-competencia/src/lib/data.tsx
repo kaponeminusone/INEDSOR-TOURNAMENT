@@ -94,6 +94,7 @@ type DataContextType = Omit<Tables, "participants"> & {
   addRobot: (robot: { name: string; categories: string[]; participantId?: string | null }) => Promise<string | null>
   updateRobot: (id: string, updates: { name: string; categories: string[]; participantId?: string | null }) => Promise<boolean>
   addRobotCategory: (robotId: string, categoryId: string) => Promise<boolean>
+  removeRobotCategory: (robotId: string, categoryId: string) => Promise<boolean>
   updateInstitution: (id: string, updates: Partial<Pick<Institution, "name" | "coach" | "initials">>) => Promise<boolean>
   setInstitutionLogo: (id: string, file: File | null) => Promise<boolean>
   addParticipantFull: (payload: NewParticipantFull) => Promise<boolean>
@@ -316,6 +317,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return mutate(() => supabase.from("robots").update({ category_ids }).eq("id", robotId), ["robots"], "Categoría añadida.")
   }, [mutate, tables.robots])
 
+  const removeRobotCategory = useCallback((robotId: string, categoryId: string) => {
+    const robot = tables.robots.find(r => r.id === robotId)
+    if (!robot) return Promise.resolve(false)
+    const category_ids = robot.categories.filter(id => id !== categoryId)
+    return mutate(() => supabase.from("robots").update({ category_ids }).eq("id", robotId), ["robots"], "Categoría retirada.")
+  }, [mutate, tables.robots])
+
   const importData = useCallback(async (institutions: ImportInstitution[], participants: ImportParticipant[], robots: ImportRobot[]) => {
     const ownerOf = new Map(participants.flatMap(p => p.robots.map(r => [r, p.id] as const)))
     const newParticipants = participants.filter(p => !p.existing)
@@ -519,7 +527,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     session,
     isOrganizer,
     isLoggedIn: Boolean(session) && isOrganizer,
-    login, logout, markAttendance, addParticipant, updateParticipant, addRobot, updateRobot, addRobotCategory,
+    login, logout, markAttendance, addParticipant, updateParticipant, addRobot, updateRobot, addRobotCategory, removeRobotCategory,
     updateInstitution, setInstitutionLogo, addParticipantFull, importData, describeEntrant,
     createCompetition, discardCompetition, revealCompetition, setMatchWinner, setMatchActive, setHeatPlacements,
     recordRun, deleteRun, finishCompetition, reopenCompetition, setLiveStream,
