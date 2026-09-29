@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: inedsor-torneo
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: .
+    # El package.json de la raíz es el que trae las dependencias reales (instaladas
+    # por hoisting); el de artifacts/robotica-competencia trae referencias de pnpm
+    # (catalog:, workspace:*) que no existen fuera de Replit, así que el install
+    # corre desde la raíz y el build/serve se ejecutan luego desde esa carpeta.
+    # El lockfile de la raíz apunta al registro interno de Replit: hay que instalar
+    # con --package-lock=false para que resuelva contra npmjs.org normal.
+    buildCommand: npm install --package-lock=false && cd artifacts/robotica-competencia && BASE_PATH=/ npm run build
+    startCommand: cd artifacts/robotica-competencia && npm run serve
+    envVars:
+      - key: BASE_PATH
+        value: /
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+    autoDeploy: true
