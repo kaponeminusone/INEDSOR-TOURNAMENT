@@ -89,10 +89,13 @@ export default function Home() {
       <section ref={heroRef} className="section-dark relative flex min-h-[calc(100svh-var(--nav-height))] flex-col overflow-hidden">
         <div className="hero-glow" />
 
-        <div className="container-wide relative flex flex-1 flex-col justify-center gap-8 py-12 md:gap-10 md:py-16">
-          <h1 className="headline-xl max-w-[14ch] uppercase">Encuentro de Robótica y Drones</h1>
+        <div className="container-wide relative flex flex-1 flex-col justify-center gap-10 py-12 md:flex-row md:items-center md:justify-between md:gap-10 md:py-16">
+          <div className="max-w-xl">
+            <h1 className="headline-xl uppercase">Encuentro de Robótica y Drones</h1>
+            <p className="mt-3 text-[16px] font-medium text-white/60 md:text-[18px]">Institución Educativa Soledad Román de Núñez</p>
+          </div>
 
-          <div className="relative w-full max-w-md overflow-hidden rounded-[24px] md:rounded-[28px]">
+          <div className="relative w-full shrink-0 overflow-hidden rounded-[24px] md:max-w-md md:rounded-[28px]">
             <motion.img
               src={heroImage}
               alt="Robots de sumo enfrentándose en el dohyo"

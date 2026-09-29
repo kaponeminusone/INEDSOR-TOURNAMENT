@@ -17,10 +17,7 @@ const links = [
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
-      <span className="relative grid h-[26px] w-[26px] place-items-center rounded-[8px] bg-foreground text-[14px] font-bold text-background">
-        I
-        <span className="absolute bottom-[5px] right-[5px] h-[4px] w-[4px] rounded-full bg-brand-red" />
-      </span>
+      <img src="/logo-inedsor.png" alt="" className="h-[30px] w-[30px] object-contain" />
       <span className="text-[15px] font-semibold tracking-[-0.02em]">INEDSOR</span>
     </span>
   )
