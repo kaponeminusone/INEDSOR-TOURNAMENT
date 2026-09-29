@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Link } from "wouter"
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
-import { ChevronRight, FileText, Trophy } from "lucide-react"
+import { ChevronRight, ChevronsRight, FileText, Trophy } from "lucide-react"
 import { useData } from "@/lib/data"
 import { categoryImages } from "@/lib/category-images"
 import { buildLeaderboard, kindOf, modalityOf } from "@/lib/tournament"
@@ -52,17 +52,19 @@ function useCountdown(target: Date) {
 
 const eventDateRaw = new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Bogota" }).format(EVENT.date)
 const eventDate = eventDateRaw.charAt(0).toUpperCase() + eventDateRaw.slice(1)
-const EVENT_END = EVENT.date.getTime() + 86_400_000
+// El conteo va hasta la 1:00 p.m. del día del evento (inicio del torneo), no hasta la medianoche.
+const COUNTDOWN_TARGET = new Date(EVENT.date.getTime() + 13 * 3_600_000)
+const DAY_END = EVENT.date.getTime() + 86_400_000
 
 export default function Home() {
   const { categories, institutions, rankings, participants, robots } = useData()
-  const time = useCountdown(EVENT.date)
+  const time = useCountdown(COUNTDOWN_TARGET)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000)
     return () => clearInterval(timer)
   }, [])
-  const phase = now < EVENT.date.getTime() ? "before" : now < EVENT_END ? "today" : "after"
+  const phase = now < COUNTDOWN_TARGET.getTime() ? "before" : now < DAY_END ? "today" : "after"
   const reduce = useReducedMotion()
   const heroRef = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] })
@@ -84,61 +86,61 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section ref={heroRef} className="section-dark relative overflow-hidden">
+      <section ref={heroRef} className="section-dark relative flex min-h-[calc(100svh-var(--nav-height))] flex-col overflow-hidden">
         <div className="hero-glow" />
-        <div className="container-apple relative pt-16 text-center md:pt-24">
-          <div>
-            <span className="chip chip-dark mb-6">{EVENT.institution}</span>
-            <h1 className="headline-hero">Torneo INEDSOR.</h1>
-            <p className="headline-md mt-3 text-gradient font-semibold">Ingenio. Estrategia. Robótica.</p>
-            <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-[#a1a1a6] md:text-[19px]">
-              Competencia de robótica y dron: estudiantes ponen a prueba sus robots en {categories.length} categorías.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/categorias" className="btn-pill btn-primary">Explorar categorías</Link>
-              <Link href="/ranking" className="btn-pill btn-ghost-dark">Ver clasificación</Link>
+
+        <div className="container-wide relative flex flex-1 flex-col justify-center gap-8 py-12 md:gap-10 md:py-16">
+          <h1 className="headline-xl max-w-[14ch] uppercase">Encuentro de Robótica y Drones</h1>
+
+          <div className="relative w-full max-w-md overflow-hidden rounded-[24px] md:rounded-[28px]">
+            <motion.img
+              src={heroImage}
+              alt="Robots de sumo enfrentándose en el dohyo"
+              className="absolute inset-0 h-full w-full object-cover blur-[3px]"
+              style={{ scale: imageScale, y: imageY }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/75 to-black/95" />
+            <div className="relative p-6 md:p-8">
+              {phase === "before" ? (
+                <>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/60">Faltan para el torneo</p>
+                  <div className="mt-3 flex items-end gap-4 text-white md:gap-6" role="timer" aria-live="off">
+                    {[
+                      { v: time.days, l: "días", pad: 3 },
+                      { v: time.hours, l: "horas" },
+                      { v: time.minutes, l: "min" },
+                      { v: time.seconds, l: "seg" },
+                    ].map(unit => (
+                      <div key={unit.l} className="flex flex-col">
+                        <span className="text-[30px] font-semibold leading-none tracking-[-0.04em] md:text-[44px]">
+                          <RollingNumber value={unit.v} pad={unit.pad} />
+                        </span>
+                        <span className="mt-2 text-[11px] font-medium text-white/60 md:text-[12px]">{unit.l}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-[26px] font-semibold leading-none tracking-[-0.04em] text-white md:text-[36px]">
+                  {phase === "today" ? "Hoy es el torneo." : "Gracias por participar."}
+                </p>
+              )}
+              <p className="mt-4 text-[13px] text-white/70">{eventDate} · 1:00 p. m.</p>
             </div>
           </div>
         </div>
 
-        <div className="container-wide relative mt-14 md:mt-20">
-          <div className="relative mx-auto aspect-[4/5] max-h-[620px] w-full overflow-hidden rounded-t-[24px] sm:aspect-[16/9] md:aspect-[21/9] md:rounded-t-[32px]">
-            <motion.img
-              src={heroImage}
-              alt="Robots de sumo enfrentándose en el dohyo"
-              className="h-full w-full object-cover"
-              style={{ scale: imageScale, y: imageY }}
+        <Link href="/categorias" className="group relative block border-t border-white/10">
+          <div className="container-wide flex items-center justify-between py-5 md:py-6">
+            <span className="text-[15px] font-medium text-white/70 transition-colors group-hover:text-white md:text-[17px]">
+              Explorar categorías
+            </span>
+            <ChevronsRight
+              size={22}
+              className="text-white/70 transition-all duration-300 ease-out group-hover:translate-x-2 group-hover:text-white"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40" />
-            <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
-              {phase === "before" ? (
-                <>
-              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/60">Faltan para el torneo</p>
-              <div className="mt-3 flex items-end gap-5 text-white md:gap-9" role="timer" aria-live="off">
-                {[
-                  { v: time.days, l: "días", pad: 3 },
-                  { v: time.hours, l: "horas" },
-                  { v: time.minutes, l: "min" },
-                  { v: time.seconds, l: "seg" },
-                ].map(unit => (
-                  <div key={unit.l} className="flex flex-col">
-                    <span className="text-[36px] font-semibold leading-none tracking-[-0.04em] md:text-[64px]">
-                      <RollingNumber value={unit.v} pad={unit.pad} />
-                    </span>
-                    <span className="mt-2 text-[12px] font-medium text-white/60 md:text-[13px]">{unit.l}</span>
-                  </div>
-                ))}
-              </div>
-                </>
-              ) : (
-                <p className="text-[36px] font-semibold leading-none tracking-[-0.04em] text-white md:text-[64px]">
-                  {phase === "today" ? "Hoy es el torneo." : "Gracias por participar."}
-                </p>
-              )}
-              <p className="mt-4 text-[14px] text-white/70">{eventDate}</p>
-            </div>
           </div>
-        </div>
+        </Link>
       </section>
 
       {/* Showcase */}
