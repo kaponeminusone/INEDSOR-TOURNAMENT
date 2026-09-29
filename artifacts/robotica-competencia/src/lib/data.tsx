@@ -90,7 +90,9 @@ type DataContextType = Omit<Tables, "participants"> & {
   logout: () => Promise<void>
   markAttendance: (participantId: string) => Promise<boolean>
   addParticipant: (participant: { name: string; email: string; whatsapp: string; grade: string; institutionId: string }) => Promise<boolean>
+  updateParticipant: (id: string, updates: { name: string; email: string; whatsapp: string; grade: string; institutionId: string }) => Promise<boolean>
   addRobot: (robot: { name: string; categories: string[]; participantId?: string | null }) => Promise<string | null>
+  updateRobot: (id: string, updates: { name: string; categories: string[]; participantId?: string | null }) => Promise<boolean>
   addRobotCategory: (robotId: string, categoryId: string) => Promise<boolean>
   updateInstitution: (id: string, updates: Partial<Pick<Institution, "name" | "coach" | "initials">>) => Promise<boolean>
   setInstitutionLogo: (id: string, file: File | null) => Promise<boolean>
@@ -252,11 +254,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
     mutate(() => supabase.from("participants").insert({ name: p.name, email: p.email, whatsapp: p.whatsapp, grade: p.grade, institution_id: p.institutionId || null }), ["participants"], "Participante registrado.")
   , [mutate])
 
+  const updateParticipant = useCallback((id: string, updates: { name: string; email: string; whatsapp: string; grade: string; institutionId: string }) =>
+    mutate(() => supabase.from("participants").update({
+      name: updates.name, email: updates.email, whatsapp: updates.whatsapp, grade: updates.grade, institution_id: updates.institutionId || null,
+    }).eq("id", id), ["participants"], "Participante actualizado.")
+  , [mutate])
+
   const addRobot = useCallback(async (robot: { name: string; categories: string[]; participantId?: string | null }) => {
     const id = crypto.randomUUID()
     const ok = await mutate(() => supabase.from("robots").insert({ id, name: robot.name, category_ids: robot.categories.filter(Boolean), participant_id: robot.participantId ?? null }), ["robots"], "Robot registrado.")
     return ok ? id : null
   }, [mutate])
+
+  const updateRobot = useCallback((id: string, updates: { name: string; categories: string[]; participantId?: string | null }) =>
+    mutate(() => supabase.from("robots").update({
+      name: updates.name, category_ids: updates.categories.filter(Boolean), participant_id: updates.participantId ?? null,
+    }).eq("id", id), ["robots"], "Robot actualizado.")
+  , [mutate])
 
   const updateInstitution = useCallback((id: string, updates: Partial<Pick<Institution, "name" | "coach" | "initials">>) =>
     mutate(() => supabase.from("institutions").update(updates).eq("id", id), ["institutions"], "Institución actualizada.")
@@ -505,7 +519,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     session,
     isOrganizer,
     isLoggedIn: Boolean(session) && isOrganizer,
-    login, logout, markAttendance, addParticipant, addRobot, addRobotCategory,
+    login, logout, markAttendance, addParticipant, updateParticipant, addRobot, updateRobot, addRobotCategory,
     updateInstitution, setInstitutionLogo, addParticipantFull, importData, describeEntrant,
     createCompetition, discardCompetition, revealCompetition, setMatchWinner, setMatchActive, setHeatPlacements,
     recordRun, deleteRun, finishCompetition, reopenCompetition, setLiveStream,
