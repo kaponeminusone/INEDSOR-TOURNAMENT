@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { Trophy } from "lucide-react"
-import { useData, type Category } from "@/lib/data"
+import { useData, type Category, type Institution } from "@/lib/data"
 import { eliminationPlaces, heatsPlaces, resolveMatches, timedPlaces, type Competition, type Places } from "@/lib/competition"
 import { EliminationBoard } from "@/components/competition/elimination-board"
 import { HeatsBoard } from "@/components/competition/heats-board"
@@ -34,6 +34,25 @@ export function PodiumStrip({ places }: { places: Places }) {
               <div key={k} className="truncate text-[15px] font-semibold tracking-[-0.015em]">{describeEntrant(k).name}</div>
             ))}
             <div className="truncate text-[12px] text-muted-foreground">{keys.map(k => describeEntrant(k).schoolInitials).join(" · ")}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Clasificación por colegio, sin llave ni nombres de robot: para categorías donde el resultado
+// se conoce a nivel institucional pero no hay un enfrentamiento robot a robot que lo respalde.
+export function InstitutionPodiumStrip({ institutions }: { institutions: Institution[] }) {
+  const color = ["text-gold", "text-silver", "text-bronze"]
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {institutions.slice(0, 3).map((institution, i) => (
+        <div key={institution.id} className="tile tile-muted flex items-center gap-3 p-4">
+          <Trophy size={22} className={`shrink-0 ${color[i]}`} />
+          <div className="min-w-0">
+            <div className="text-[12px] font-medium text-muted-foreground">{i + 1}.º lugar</div>
+            <div className="truncate text-[15px] font-semibold tracking-[-0.015em]">{institution.name}</div>
           </div>
         </div>
       ))}

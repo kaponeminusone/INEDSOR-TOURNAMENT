@@ -15,6 +15,7 @@ export type RankingRow = { institutionId: string; gold: number; silver: number; 
 export type CategoryResult = { categoryId: string; places: Places; recordedAt: string }
 export type EntrantInfo = { key: string; name: string; school: string; schoolInitials: string; institutionIds: string[] }
 export type LiveStream = { id: string; categoryId: string; label: string; url: string; provider: StreamProvider; videoId: string | null; isLive: boolean; updatedAt: string }
+export type SimpleResult = { id: string; categoryId: string; place: number; institutionId: string }
 export type { StreamProvider }
 
 type ParticipantRow = Omit<Participant, "robots">
@@ -29,6 +30,7 @@ type Tables = {
   competitionRuns: Run[]
   categoryResults: CategoryResult[]
   liveStreams: LiveStream[]
+  simpleResults: SimpleResult[]
 }
 type TableName = keyof Tables
 
@@ -43,6 +45,7 @@ const mappers: { [K in TableName]: (row: any) => Tables[K][number] } = {
   competitionRuns: r => ({ id: r.id, competitionId: r.competition_id, entrantKey: r.entrant_key, phase: r.phase, attempt: r.attempt, status: r.status, timeMs: r.time_ms ?? null, splits: r.splits ?? [], checkpoints: r.checkpoints ?? 0, locked: r.locked }),
   categoryResults: r => ({ categoryId: r.category_id, places: r.places ?? [], recordedAt: r.recorded_at }),
   liveStreams: r => ({ id: r.id, categoryId: r.category_id, label: r.label ?? "", url: r.youtube_url ?? "", provider: r.provider === "tiktok" ? "tiktok" : "youtube", videoId: r.video_id ?? null, isLive: r.is_live ?? false, updatedAt: r.updated_at }),
+  simpleResults: r => ({ id: r.id, categoryId: r.category_id, place: r.place, institutionId: r.institution_id }),
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -59,6 +62,7 @@ function queryFor(table: TableName, organizer: boolean) {
     case "competitionRuns": return supabase.from("competition_runs").select("*").order("created_at")
     case "categoryResults": return supabase.from("category_results").select("*")
     case "liveStreams": return supabase.from("live_streams").select("*")
+    case "simpleResults": return supabase.from("simple_results").select("*").order("place")
   }
 }
 
@@ -111,6 +115,7 @@ type DataContextType = Omit<Tables, "participants"> & {
   finishCompetition: (competition: Competition, places: Places) => Promise<boolean>
   reopenCompetition: (competition: Competition) => Promise<boolean>
   setLiveStream: (categoryId: string, updates: { label: string; url: string; isLive: boolean }) => Promise<boolean>
+  setSimpleResults: (categoryId: string, institutionIds: string[]) => Promise<boolean>
   editModeUntil: number | null
   startEditMode: (code: string) => Promise<string | null>
   endEditMode: () => Promise<void>
@@ -127,7 +132,7 @@ export type NewCompetition = {
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
-const emptyTables: Tables = { institutions: [], categories: [], participants: [], robots: [], competitions: [], competitionMatches: [], competitionRuns: [], categoryResults: [], liveStreams: [] }
+const emptyTables: Tables = { institutions: [], categories: [], participants: [], robots: [], competitions: [], competitionMatches: [], competitionRuns: [], categoryResults: [], liveStreams: [], simpleResults: [] }
 const ALL_TABLES = Object.keys(emptyTables) as TableName[]
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -140,9 +145,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const organizerRef = useRef(false)
   organizerRef.current = isOrganizer
 
+  // Tablas que pueden no existir todavía (p. ej. recién agregadas a schema.sql pero aún sin
+  // aplicar en Supabase): si fallan no deben tumbar el resto de la app, solo quedan vacías.
+  const OPTIONAL_TABLES = new Set<TableName>(["simpleResults"])
+
   const refresh = useCallback(async (table: TableName) => {
     const { data, error } = await queryFor(table, organizerRef.current)
-    if (error) throw error
+    if (error) {
+      if (OPTIONAL_TABLES.has(table)) { console.warn(`[data] ${table} no disponible todavía:`, error.message); return }
+      throw error
+    }
     const mapRow = mappers[table] as (row: unknown) => unknown
     const rows = ((data ?? []) as unknown[]).map(mapRow)
     setTables(prev => ({ ...prev, [table]: rows }))
@@ -203,8 +215,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!supabaseConfigured) return
     const timers = new Map<TableName, number>()
     const channel = supabase.channel("tournament-data")
-    const dbName: Partial<Record<TableName, string>> = { competitionMatches: "competition_matches", competitionRuns: "competition_runs", categoryResults: "category_results", liveStreams: "live_streams" }
-    for (const table of ["institutions", "categories", "robots", "competitions", "competitionMatches", "competitionRuns", "categoryResults", "liveStreams"] as TableName[]) {
+    const dbName: Partial<Record<TableName, string>> = { competitionMatches: "competition_matches", competitionRuns: "competition_runs", categoryResults: "category_results", liveStreams: "live_streams", simpleResults: "simple_results" }
+    for (const table of ["institutions", "categories", "robots", "competitions", "competitionMatches", "competitionRuns", "categoryResults", "liveStreams", "simpleResults"] as TableName[]) {
       channel.on("postgres_changes", { event: "*", schema: "public", table: dbName[table] ?? table }, () => {
         window.clearTimeout(timers.get(table))
         timers.set(table, window.setTimeout(() => void refreshMany([table]), 250))
@@ -459,6 +471,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, { onConflict: "category_id" }), ["liveStreams"], updates.isLive ? "Transmisión activada." : "Transmisión guardada.")
   }, [mutate])
 
+  // ─── Clasificación simple (sin llaves ni robots) ─────────────
+
+  const setSimpleResults = useCallback((categoryId: string, institutionIds: string[]) => mutate(async () => {
+    const removed = await supabase.from("simple_results").delete().eq("category_id", categoryId)
+    if (removed.error || !institutionIds.length) return removed
+    return supabase.from("simple_results").insert(institutionIds.map((institutionId, i) => ({ category_id: categoryId, place: i + 1, institution_id: institutionId })))
+  }, ["simpleResults"], "Clasificación guardada."), [mutate])
+
   const participants = useMemo<Participant[]>(() => {
     const byOwner = new Map<string, string[]>()
     for (const robot of tables.robots) {
@@ -519,6 +539,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     competitionRuns: tables.competitionRuns,
     categoryResults: tables.categoryResults,
     liveStreams: tables.liveStreams,
+    simpleResults: tables.simpleResults,
     participants,
     rankings,
     configured: supabaseConfigured,
@@ -530,7 +551,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     login, logout, markAttendance, addParticipant, updateParticipant, addRobot, updateRobot, addRobotCategory, removeRobotCategory,
     updateInstitution, setInstitutionLogo, addParticipantFull, importData, describeEntrant,
     createCompetition, discardCompetition, revealCompetition, setMatchWinner, setMatchActive, setHeatPlacements,
-    recordRun, deleteRun, finishCompetition, reopenCompetition, setLiveStream,
+    recordRun, deleteRun, finishCompetition, reopenCompetition, setLiveStream, setSimpleResults,
     editModeUntil: editModeUntil && editModeUntil > Date.now() ? editModeUntil : null, startEditMode, endEditMode,
   }
 

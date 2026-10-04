@@ -72,6 +72,16 @@ create table if not exists public.gallery_photos (
 
 alter table public.gallery_photos add column if not exists like_count int not null default 0;
 
+-- Publicaciones de video (enlace, no archivo subido): YouTube se embebe, Drive se muestra
+-- como miniatura que abre en pestaña nueva (igual que TikTok en streaming). Una publicación
+-- es de fotos o de video, no ambas: cuando es video, storage_path/storage_paths quedan vacíos.
+alter table public.gallery_photos alter column storage_path drop not null;
+alter table public.gallery_photos add column if not exists video_url text;
+alter table public.gallery_photos add column if not exists video_provider text;
+alter table public.gallery_photos add column if not exists video_id text;
+alter table public.gallery_photos drop constraint if exists gallery_photos_video_provider_check;
+alter table public.gallery_photos add constraint gallery_photos_video_provider_check check (video_provider is null or video_provider in ('youtube', 'drive'));
+
 -- Varias fotos por publicación (estilo carrusel). storage_path sigue siendo la portada por compatibilidad.
 alter table public.gallery_photos add column if not exists storage_paths text[] not null default '{}';
 update public.gallery_photos set storage_paths = array[storage_path]
@@ -175,6 +185,30 @@ create table if not exists public.category_results (
 
 create index if not exists competition_matches_idx on public.competition_matches (competition_id, stage, round, position);
 create index if not exists competition_runs_idx on public.competition_runs (competition_id, entrant_key);
+
+-- Clasificación simple por institución: para categorías donde el resultado final se conoce
+-- a nivel de colegio pero no hubo (o no se registró) un enfrentamiento robot a robot que
+-- respalde category_results. No sustituye category_results ni las llaves: es un podio aparte,
+-- solo con el nombre del colegio, sin robots. Se muestra en vez de la llave cuando existe.
+create table if not exists public.simple_results (
+  id uuid primary key default gen_random_uuid(),
+  category_id uuid not null references public.categories on delete cascade,
+  place int not null check (place > 0),
+  institution_id uuid not null references public.institutions on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (category_id, place)
+);
+alter table public.simple_results enable row level security;
+drop policy if exists "lectura publica" on public.simple_results;
+create policy "lectura publica" on public.simple_results for select to anon, authenticated using (true);
+drop policy if exists "organizadores escriben" on public.simple_results;
+create policy "organizadores escriben" on public.simple_results for all to authenticated using (public.is_organizer()) with check (public.is_organizer());
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'simple_results') then
+    alter publication supabase_realtime add table public.simple_results;
+  end if;
+end $$;
 
 -- ─────────────────────────────────────────────
 -- Streaming en vivo: una transmisión de YouTube por categoría.

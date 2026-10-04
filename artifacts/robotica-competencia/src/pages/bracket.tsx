@@ -3,7 +3,7 @@ import { Hourglass } from "lucide-react"
 import { useData } from "@/lib/data"
 import { formatLabel } from "@/lib/tournament"
 import { PageHeader } from "@/components/page-header"
-import { CompetitionView, PodiumStrip, useCompetitionPlaces } from "@/components/competition/competition-view"
+import { CompetitionView, InstitutionPodiumStrip, PodiumStrip, useCompetitionPlaces } from "@/components/competition/competition-view"
 import { LiveStreamWidget } from "@/components/live-stream-widget"
 
 const seenKey = (id: string, revealedAt: string | null) => `inedsor_seen_${id}_${revealedAt ?? ""}`
@@ -11,7 +11,7 @@ const wasSeen = (key: string) => { try { return localStorage.getItem(key) === "1
 const markSeen = (key: string) => { try { localStorage.setItem(key, "1") } catch { /* storage unavailable */ } }
 
 export default function Bracket() {
-  const { categories, competitions, liveStreams } = useData()
+  const { categories, competitions, liveStreams, institutions, simpleResults } = useData()
   const published = competitions.filter(c => c.status !== "draft")
   const [selectedId, setSelectedId] = useState<string>(() => published[0]?.categoryId ?? categories[0]?.id ?? "")
 
@@ -23,6 +23,11 @@ export default function Bracket() {
   const category = categories.find(c => c.id === selectedId)
   const competition = published.find(c => c.categoryId === selectedId)
   const places = useCompetitionPlaces(competition)
+  const simplePodium = simpleResults
+    .filter(r => r.categoryId === selectedId)
+    .sort((a, b) => a.place - b.place)
+    .map(r => institutions.find(i => i.id === r.institutionId))
+    .filter((i): i is NonNullable<typeof i> => Boolean(i))
 
   const revealKey = competition ? seenKey(competition.id, competition.revealedAt) : null
   const [animateKey, setAnimateKey] = useState<string | null>(null)
@@ -40,7 +45,7 @@ export default function Bracket() {
         <div className="mb-8 flex justify-center">
           <div className="segmented" role="group" aria-label="Categoría">
             {categories.map(c => {
-              const s = published.find(x => x.categoryId === c.id)?.status
+              const s = simpleResults.some(r => r.categoryId === c.id) ? "finished" : published.find(x => x.categoryId === c.id)?.status
               return (
                 <button key={c.id} type="button" aria-pressed={selectedId === c.id} onClick={() => setSelectedId(c.id)} className="inline-flex items-center gap-2">
                   {s && <span className={`h-2 w-2 rounded-full ${s === "finished" ? "bg-success" : "bg-[hsl(32_95%_50%)] animate-pulse"}`} />}
@@ -51,7 +56,20 @@ export default function Bracket() {
           </div>
         </div>
 
-        {category && !competition && (
+        {category && simplePodium.length > 0 && (
+          <>
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <h2 className="text-[26px] font-semibold tracking-[-0.03em]">{category.name}</h2>
+              <span className="chip bg-success/12 text-success">Finalizada</span>
+            </div>
+            <p className="mb-4 text-[13px] text-muted-foreground">
+              Clasificación por colegio. Esta categoría no tiene llave publicada: se muestra solo el resultado final, sin nombres de robot.
+            </p>
+            <InstitutionPodiumStrip institutions={simplePodium} />
+          </>
+        )}
+
+        {category && simplePodium.length === 0 && !competition && (
           <div className="tile tile-muted mx-auto flex max-w-xl flex-col items-center p-12 text-center">
             <Hourglass size={34} strokeWidth={1.5} className="text-muted-foreground" />
             <h2 className="mt-4 text-[22px] font-semibold tracking-[-0.025em]">{category.name}: aún no publicada.</h2>
@@ -59,7 +77,7 @@ export default function Bracket() {
           </div>
         )}
 
-        {category && competition && (
+        {category && simplePodium.length === 0 && competition && (
           <>
             <div className="mb-6 flex flex-wrap items-center gap-2">
               <h2 className="text-[26px] font-semibold tracking-[-0.03em]">{category.name}</h2>

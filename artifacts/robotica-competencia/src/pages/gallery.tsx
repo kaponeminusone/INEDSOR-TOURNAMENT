@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronRight, Heart, ImagePlus, Maximize2, Pause, Play, RefreshCw, Send, Trash2, X } from "lucide-react";
+import { ChevronRight, ExternalLink, Heart, ImagePlus, Maximize2, Pause, Play, RefreshCw, Send, Trash2, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import { useData } from "@/lib/data";
 import { supabase, MEDIA_BUCKET, publicMediaUrl } from "@/lib/supabase";
 import { resizeImage } from "@/lib/image";
+import { extractYoutubeId, youtubeEmbedUrl, youtubeThumbnailUrl } from "@/lib/youtube";
+import { extractDriveFileId, driveThumbnailUrl, driveWatchUrl } from "@/lib/drive";
 import { Reveal } from "@/components/reveal";
 import lineFollower from "@assets/generated_images/inedsor-seguidor-de-linea.jpg";
 import minisumo from "@assets/generated_images/inedsor-minisumo.jpg";
@@ -14,11 +16,19 @@ import drone from "@assets/generated_images/inedsor-pista-dron.jpg";
 import balloons from "@assets/generated_images/inedsor-explotaglobos.jpg";
 import maze from "@assets/generated_images/inedsor-laberinto.jpg";
 
-type Post = { id: string; caption: string; createdAt: string; imageUrl: string; imageUrls: string[]; storagePath?: string; storagePaths: string[]; likeCount: number; sample: boolean };
-type PhotoRow = { id: string; caption: string; storage_path: string; storage_paths: string[] | null; created_at: string; like_count: number };
+type VideoProvider = "youtube" | "drive";
+type Post = {
+  id: string; caption: string; createdAt: string; imageUrl: string; imageUrls: string[]; storagePath?: string; storagePaths: string[];
+  likeCount: number; sample: boolean;
+  videoUrl: string | null; videoProvider: VideoProvider | null; videoId: string | null;
+};
+type PhotoRow = {
+  id: string; caption: string; storage_path: string | null; storage_paths: string[] | null; created_at: string; like_count: number;
+  video_url: string | null; video_provider: VideoProvider | null; video_id: string | null;
+};
 
 const PAGE_SIZE = 12;
-const PHOTO_COLUMNS = "id,caption,storage_path,storage_paths,created_at,like_count";
+const PHOTO_COLUMNS = "id,caption,storage_path,storage_paths,created_at,like_count,video_url,video_provider,video_id";
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
 
 const SAMPLE_POSTS: Post[] = [
@@ -28,13 +38,21 @@ const SAMPLE_POSTS: Post[] = [
   { id: "sample-4", imageUrl: soccer, imageUrls: [soccer, minisumo], createdAt: hoursAgo(26), likeCount: 0, sample: true, caption: "Si una publicación tiene varias fotos, se deslizan hacia los lados como aquí. #Futbolito" },
   { id: "sample-5", imageUrl: balloons, imageUrls: [balloons], createdAt: hoursAgo(50), likeCount: 0, sample: true, caption: "" },
   { id: "sample-6", imageUrl: maze, imageUrls: [maze], createdAt: hoursAgo(75), likeCount: 0, sample: true, caption: "Cuando la organización publique las primeras fotos, estos ejemplos desaparecerán. #Robotica" },
-].map(p => ({ ...p, storagePaths: [] as string[] }));
+].map(p => ({ ...p, storagePaths: [] as string[], videoUrl: null, videoProvider: null, videoId: null }));
 
 const toPost = (row: PhotoRow): Post => {
-  const paths = row.storage_paths?.length ? row.storage_paths : [row.storage_path];
+  if (row.video_provider && row.video_id) {
+    return {
+      id: row.id, caption: row.caption ?? "", createdAt: row.created_at, storagePaths: [],
+      imageUrl: "", imageUrls: [], likeCount: row.like_count ?? 0, sample: false,
+      videoUrl: row.video_url, videoProvider: row.video_provider, videoId: row.video_id,
+    };
+  }
+  const paths = row.storage_paths?.length ? row.storage_paths : row.storage_path ? [row.storage_path] : [];
   return {
-    id: row.id, caption: row.caption ?? "", createdAt: row.created_at, storagePath: row.storage_path, storagePaths: paths,
-    imageUrl: publicMediaUrl(row.storage_path), imageUrls: paths.map(publicMediaUrl), likeCount: row.like_count ?? 0, sample: false,
+    id: row.id, caption: row.caption ?? "", createdAt: row.created_at, storagePath: row.storage_path ?? undefined, storagePaths: paths,
+    imageUrl: paths[0] ? publicMediaUrl(paths[0]) : "", imageUrls: paths.map(publicMediaUrl), likeCount: row.like_count ?? 0, sample: false,
+    videoUrl: null, videoProvider: null, videoId: null,
   };
 };
 
@@ -200,6 +218,34 @@ function PhotoCarousel({ images, alt }: { images: string[]; alt: string }) {
   );
 }
 
+// YouTube se incrusta directo; Drive no siempre lo permite (depende de cómo se compartió el
+// archivo), así que se muestra como miniatura que abre el video en una pestaña nueva.
+function VideoEmbed({ provider, videoId, title }: { provider: VideoProvider; videoId: string; title: string }) {
+  if (provider === "youtube") {
+    return (
+      <div className="aspect-video w-full">
+        <iframe
+          src={youtubeEmbedUrl(videoId)}
+          title={title}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+  return (
+    <a href={driveWatchUrl(videoId)} target="_blank" rel="noreferrer" className="group relative block aspect-video w-full overflow-hidden bg-black">
+      <img src={driveThumbnailUrl(videoId)} alt="" loading="lazy" className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-60" />
+      <span className="absolute inset-0 grid place-items-center">
+        <span className="inline-flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-[13px] font-medium text-white backdrop-blur-sm">
+          <ExternalLink size={14} /> Ver video en Drive
+        </span>
+      </span>
+    </a>
+  );
+}
+
 function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, onTag, deleting }: FeedPostProps) {
   const reduce = useReducedMotion();
   const [burst, setBurst] = useState(0);
@@ -207,6 +253,7 @@ function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, on
   const caption = post.caption.trim();
   const long = caption.length > 110;
   const multi = post.imageUrls.length > 1;
+  const isVideo = Boolean(post.videoProvider && post.videoId);
 
   const doubleTap = () => {
     if (!liked) onLike(true);
@@ -230,8 +277,10 @@ function FeedPost({ post, index, liked, onLike, onShare, onPresent, onDelete, on
         )}
       </header>
 
-      <div className="relative select-none overflow-hidden bg-muted sm:rounded-[10px] sm:border sm:border-border" onDoubleClick={doubleTap}>
-        {multi ? (
+      <div className="relative select-none overflow-hidden bg-muted sm:rounded-[10px] sm:border sm:border-border" onDoubleClick={isVideo ? undefined : doubleTap}>
+        {isVideo ? (
+          <VideoEmbed provider={post.videoProvider!} videoId={post.videoId!} title={photoAlt(post)} />
+        ) : multi ? (
           <PhotoCarousel images={post.imageUrls} alt={photoAlt(post)} />
         ) : (
           <img src={post.imageUrl} alt={photoAlt(post)} loading={index < 2 ? "eager" : "lazy"} decoding="async" draggable={false} className="max-h-[640px] w-full object-cover" />
@@ -290,6 +339,8 @@ export default function Gallery() {
   const [caption, setCaption] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [composerMode, setComposerMode] = useState<"photos" | "video">("photos");
+  const [videoUrl, setVideoUrl] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [presenting, setPresenting] = useState(false);
@@ -416,7 +467,7 @@ export default function Gallery() {
   const removeFileAt = (index: number) => setFiles(current => current.filter((_, i) => i !== index));
 
   const clearComposer = () => {
-    setFiles([]); setCaption("");
+    setFiles([]); setCaption(""); setVideoUrl("");
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -450,6 +501,34 @@ export default function Gallery() {
       if (paths.length) await supabase.storage.from(MEDIA_BUCKET).remove(paths);
       toast.error(error instanceof Error ? error.message : "No se pudo publicar la fotografía.");
     } finally { setBusy(null); }
+  };
+
+  // No se sube archivo de video: solo se guarda el enlace (YouTube o Drive).
+  const detectVideo = (url: string): { provider: VideoProvider; id: string } | null => {
+    const yt = extractYoutubeId(url);
+    if (yt) return { provider: "youtube", id: yt };
+    const drive = extractDriveFileId(url);
+    if (drive) return { provider: "drive", id: drive };
+    return null;
+  };
+
+  const publishVideo = async (event: FormEvent) => {
+    event.preventDefault();
+    const url = videoUrl.trim();
+    if (!url) return;
+    const detected = detectVideo(url);
+    if (!detected) { toast.error("No reconozco ese enlace. Usa un link de YouTube o de Google Drive."); return; }
+    setBusy("upload");
+    const { data, error } = await supabase.from("gallery_photos")
+      .insert({ caption: caption.trim(), video_url: url, video_provider: detected.provider, video_id: detected.id })
+      .select(PHOTO_COLUMNS).single();
+    setBusy(null);
+    if (error) { toast.error(error.message); return; }
+    const post = toPost(data as PhotoRow);
+    setPhotos(current => current.some(p => p.id === post.id) ? current : [post, ...current]);
+    setTotal(t => t + 1);
+    clearComposer();
+    toast.success("Publicado.");
   };
 
   const remove = async (post: Post) => {
@@ -572,7 +651,11 @@ export default function Gallery() {
 
         {isLoggedIn && (
           <section className="border-b border-border px-4 pb-4 pt-2 sm:px-0" aria-label="Publicar en la galería">
-            <form onSubmit={upload} className="flex gap-3">
+            <div className="ml-[46px] mb-2 flex gap-1.5">
+              <button type="button" onClick={() => setComposerMode("photos")} className={`chip ${composerMode === "photos" ? "bg-foreground text-background" : "text-muted-foreground"}`}>Fotos</button>
+              <button type="button" onClick={() => setComposerMode("video")} className={`chip ${composerMode === "video" ? "bg-foreground text-background" : "text-muted-foreground"}`}>Video</button>
+            </div>
+            <form onSubmit={composerMode === "photos" ? upload : publishVideo} className="flex gap-3">
               <Avatar size={36} />
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-semibold">Torneo INEDSOR</div>
@@ -586,26 +669,49 @@ export default function Gallery() {
                   rows={caption ? 3 : 1}
                   className="mt-0.5 w-full resize-none bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
                 />
-                {previews.length > 0 && (
-                  <div className="mt-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {previews.map((src, i) => (
-                      <div key={i} className="relative shrink-0">
-                        <img src={src} alt="Vista previa" className="h-24 w-24 rounded-xl border border-border object-cover" />
-                        <button type="button" onClick={() => removeFileAt(i)} aria-label="Quitar imagen" className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md">
-                          <X size={13} />
-                        </button>
+                {composerMode === "photos" ? (
+                  <>
+                    {previews.length > 0 && (
+                      <div className="mt-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {previews.map((src, i) => (
+                          <div key={i} className="relative shrink-0">
+                            <img src={src} alt="Vista previa" className="h-24 w-24 rounded-xl border border-border object-cover" />
+                            <button type="button" onClick={() => removeFileAt(i)} aria-label="Quitar imagen" className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md">
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                    <div className="mt-2 flex items-center justify-between">
+                      <label className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Agregar fotos (hasta 10)">
+                        <ImagePlus size={20} />
+                        <span className="sr-only">Agregar fotos</span>
+                        <input ref={fileRef} type="file" multiple className="sr-only" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseFile} />
+                      </label>
+                      <button className="btn-pill btn-primary btn-sm" type="submit" disabled={busy !== null || !files.length}>{busy === "upload" ? "Publicando…" : "Publicar"}</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="gallery-video-url" className="sr-only">Enlace del video</label>
+                    <div className="mt-2 flex items-center gap-2 rounded-xl border border-input px-3 py-2">
+                      <Video size={16} className="shrink-0 text-muted-foreground" />
+                      <input
+                        id="gallery-video-url"
+                        type="url"
+                        value={videoUrl}
+                        onChange={event => setVideoUrl(event.target.value)}
+                        placeholder="Enlace de YouTube o Google Drive"
+                        className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[12px] text-muted-foreground">Pega el enlace para compartir; no se sube el archivo de video.</p>
+                    <div className="mt-2 flex items-center justify-end">
+                      <button className="btn-pill btn-primary btn-sm" type="submit" disabled={busy !== null || !videoUrl.trim()}>{busy === "upload" ? "Publicando…" : "Publicar"}</button>
+                    </div>
+                  </>
                 )}
-                <div className="mt-2 flex items-center justify-between">
-                  <label className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Agregar fotos (hasta 10)">
-                    <ImagePlus size={20} />
-                    <span className="sr-only">Agregar fotos</span>
-                    <input ref={fileRef} type="file" multiple className="sr-only" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseFile} />
-                  </label>
-                  <button className="btn-pill btn-primary btn-sm" type="submit" disabled={busy !== null || !files.length}>{busy === "upload" ? "Publicando…" : "Publicar"}</button>
-                </div>
               </div>
             </form>
           </section>
@@ -717,7 +823,13 @@ export default function Gallery() {
                   exit={{ opacity: 0 }}
                   transition={{ duration: reduceMotion ? 0 : 1.1, ease: [0.28, 0.11, 0.32, 1] }}
                 >
-                  <img src={currentPost.imageUrl} alt={photoAlt(currentPost)} className="max-h-full max-w-full rounded-[14px] object-contain" />
+                  {currentPost.videoProvider && currentPost.videoId ? (
+                    <div className="aspect-video w-full max-w-[90vw] lg:max-w-[60vw]">
+                      <VideoEmbed provider={currentPost.videoProvider} videoId={currentPost.videoId} title={photoAlt(currentPost)} />
+                    </div>
+                  ) : (
+                    <img src={currentPost.imageUrl} alt={photoAlt(currentPost)} className="max-h-full max-w-full rounded-[14px] object-contain" />
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
